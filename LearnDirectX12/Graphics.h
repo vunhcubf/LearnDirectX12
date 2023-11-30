@@ -29,6 +29,8 @@ using namespace DirectX;
 
 #include "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\ProjectTemplates\VC\Windows UAP\2052\DirectX12UAP\d3dx12.h"
 
+#define CALC_CBUFFER_BYTE_SIZE( byteSize ) ( (byteSize + 255) & ~255 )
+
 class Graphics {
 public:
 	Graphics(MyWindow* Wnd);
@@ -49,10 +51,81 @@ public:
 	void CreateAndSetViewPort();
 	void CreateAndSetScissorRects();
 	void FlushCommandQueue();
+
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView()const;
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView()const;
 	ID3D12Resource* CurrentBackBuffer()const;
-	void Draw();
+	ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData,UINT64 byteSize,ComPtr<ID3D12Resource>& uploadBuffer);
+
+	static ComPtr<ID3DBlob> CompileShader(const std::wstring& filename,const D3D_SHADER_MACRO* defines,const std::string& entrypoint,const std::string& target);
+
+	///////////////////////////////////画空白画布////////////////////////////////////
+	void DrawEmpty();
+	////////////////////////////////////////////////////////////////////////////////
+	
+	///////////////////////////////////画方块用到的东西//////////////////////////////
+	void DrawBox();
+	void InitBox();
+	void QuitBox();
+	struct Vertex
+	{
+		XMFLOAT3 Pos;
+		XMFLOAT4 Color;
+	};
+	struct ObjectConstants {
+		XMFLOAT4X4 WorldViewProj = XMFLOAT4X4(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f);
+	};
+	ComPtr<ID3D12Resource> VertexBufferGpu = nullptr;
+	ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
+	ComPtr<ID3D12Resource> IndexBufferGPU = nullptr;
+	ComPtr<ID3D12Resource> IndexBufferUploader = nullptr;
+	ComPtr<ID3D12Resource> UploadCBuffer = nullptr;
+	ComPtr<ID3D12RootSignature> RootSignature = nullptr;
+	ComPtr<ID3D12PipelineState> PipelineState = nullptr;
+
+	D3D12_INPUT_ELEMENT_DESC InputLayout[2];
+	BYTE* CBufferDataPtr;
+	ComPtr<ID3DBlob> ByteCodeVS;
+	ComPtr<ID3DBlob> ByteCodePS;
+	ComPtr<ID3D12DescriptorHeap> CBufferViewHeap = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
+	D3D12_INDEX_BUFFER_VIEW IndexBufferView;
+
+	Vertex vertices[8] = {
+	{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) },
+	{ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) },
+	{ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) },
+	{ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) },
+	{ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) },
+	{ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) },
+	{ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) },
+	{ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) }
+	};
+	std::uint16_t indices[36] = {
+		// 立方体前表面
+		0, 1, 2,
+		0, 2, 3,
+		// 立方体后表面
+		4, 6, 5,
+		4, 7, 6,
+		// 立方体左表面
+		4, 5, 1,
+		4, 1, 0,
+		// 立方体右表面
+		3, 2, 6,
+		3, 6, 7,
+		// 立方体上表面
+		1, 5, 6,
+		1, 6, 2,
+		// 立方体下表面
+		4, 0, 3,
+		4, 3, 7
+	};
+	///////////////////////////////////////////////////////////////////////////////
 
 	UINT mRTVDescriptorSize;
 	UINT mDSVDescriptorSize;
@@ -91,3 +164,4 @@ public:
 	ComPtr<ID3D12Debug> pDebugController;
 #endif
 };
+

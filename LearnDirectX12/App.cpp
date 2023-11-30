@@ -6,6 +6,7 @@ void App::Initlize() {
 	MyWindow::ShowForm(this->windows.at(0));
 	this->graphics = std::vector<Graphics*>(1);
 	this->graphics.at(0) = new Graphics(this->windows.at(0));
+	this->graphics.at(0)->InitBox();
 }
 void App::ProcessMessage() {
 	MSG msg;
@@ -22,6 +23,7 @@ std::vector<MyWindow*> App::GetWindows() const
 	return windows;
 }
 void App::Quit() {
+	this->graphics.at(0)->QuitBox();
 	for (MyWindow*& e : this->windows) {
 		delete e;
 	}
@@ -30,5 +32,6 @@ void App::Quit() {
 	}
 }
 void App::DoFrame() {
-	this->graphics.at(0)->Draw();
+	//this->graphics.at(0)->DrawEmpty();
+	this->graphics.at(0)->DrawBox();
 }

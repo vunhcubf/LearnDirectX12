@@ -28,7 +28,7 @@ void Graphics::CreateDebugLayer() {
 
 void Graphics::CreateDXGIFactory() {
 #if defined _DEBUG
-	THROW_IF_ERROR(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG,IID_PPV_ARGS(&pIDXGIFactory5)));
+	THROW_IF_ERROR(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&pIDXGIFactory5)));
 #else
 	THROW_IF_ERROR(CreateDXGIFactory1(IID_PPV_ARGS(&pIDXGIFactory5)));
 #endif
@@ -63,6 +63,8 @@ void Graphics::CreateCmdQueueAllocList() {
 	THROW_IF_ERROR(this->pID3DDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(this->pDirectCmdListAlloc.GetAddressOf())));
 	THROW_IF_ERROR(this->pID3DDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pDirectCmdListAlloc.Get(), nullptr, IID_PPV_ARGS(this->pCommandList.GetAddressOf())));
 	THROW_IF_ERROR(pCommandList->Close());
+	THROW_IF_ERROR(pDirectCmdListAlloc->Reset());
+	THROW_IF_ERROR(pCommandList->Reset(pDirectCmdListAlloc.Get(), nullptr));
 }
 
 void Graphics::CreateSwapChain() {
@@ -164,7 +166,6 @@ void Graphics::FlushCommandQueue() {
 		CloseHandle(eventHandle);
 	}
 }
-
 D3D12_CPU_DESCRIPTOR_HANDLE Graphics::CurrentBackBufferView() const {
 	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVHeap->GetCPUDescriptorHandleForHeapStart(), this->CurrentBackBufferIndex, this->mRTVDescriptorSize);
 }
@@ -177,39 +178,47 @@ ID3D12Resource* Graphics::CurrentBackBuffer()const
 	return mSwapChainBuffer[CurrentBackBufferIndex].Get();
 }
 
-void Graphics::Draw() {
-	THROW_IF_ERROR(pDirectCmdListAlloc->Reset());
-	THROW_IF_ERROR(pCommandList->Reset(pDirectCmdListAlloc.Get(), nullptr));
+ComPtr<ID3D12Resource> Graphics::CreateDefaultBuffer(const void* initData, UINT64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer)
+{
+	ComPtr<ID3D12Resource> defaultBuffer;
+	CD3DX12_HEAP_PROPERTIES hp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	CD3DX12_RESOURCE_DESC rd = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
+	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE, &rd, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
+	hp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE, &rd, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
+	D3D12_SUBRESOURCE_DATA subResourceData = {};
+	subResourceData.pData = initData;
+	subResourceData.RowPitch = byteSize;
+	subResourceData.SlicePitch = subResourceData.RowPitch;
 
-	CD3DX12_RESOURCE_BARRIER rb = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	CD3DX12_RESOURCE_BARRIER rb = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
 	pCommandList->ResourceBarrier(1, &rb);
 
-	pCommandList->RSSetScissorRects(1, &pRECT);
-	pCommandList->RSSetViewports(1, &pViewPort);
+	UpdateSubresources<1>(pCommandList.Get(), defaultBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &subResourceData);
 
-	pCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
-	pCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-
-	auto cbv = CurrentBackBufferView();
-	auto dsv = DepthStencilView();
-	pCommandList->OMSetRenderTargets(1, &cbv, true, &dsv);
-
-	rb = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	rb = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
 	pCommandList->ResourceBarrier(1, &rb);
+	return defaultBuffer;
+}
 
-	THROW_IF_ERROR(pCommandList->Close());
-	ID3D12CommandList* cmdsLists[] = { pCommandList.Get() };
-	pCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-	THROW_IF_ERROR(pIDXGISwapChain->Present(0, 0));
-	CurrentBackBufferIndex = (CurrentBackBufferIndex + 1) % mBackBufferCount;
-	FlushCommandQueue();
+ComPtr<ID3DBlob> Graphics::CompileShader(const std::wstring& filename, const D3D_SHADER_MACRO* defines, const std::string& entrypoint, const std::string& target)
+{
+	UINT compileFlags = 0;
+#if defined(DEBUG) |defined(_DEBUG)
+	compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+	ComPtr<ID3DBlob> byteCode = nullptr;
+	ComPtr<ID3DBlob> errors;
+	THROW_IF_ERROR(D3DCompileFromFile(filename.c_str(), defines,D3D_COMPILE_STANDARD_FILE_INCLUDE,entrypoint.c_str(), target.c_str(),compileFlags,0,&byteCode, &errors));
+	if (errors != nullptr){ OutputDebugStringA((char*)errors->GetBufferPointer()); }
+	return byteCode;
 }
 
 Graphics::Graphics(MyWindow* Wnd) {
 	this->hWnd = Wnd->hWnd;
 	this->Height = Wnd->Height;
 	this->Width = Wnd->Width;
-	
+
 	CreateDebugLayer();
 	CreateDXGIFactory();
 	SelectVideoCard();
@@ -226,5 +235,175 @@ Graphics::Graphics(MyWindow* Wnd) {
 	CreateDSVForBackBuffer();
 	CreateAndSetViewPort();
 	CreateAndSetScissorRects();
+	THROW_IF_ERROR(pCommandList->Close());
+	ID3D12CommandList* cmdsLists[] = { pCommandList.Get() };
+	pCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	FlushCommandQueue();
 }
 
+void Graphics::InitBox()
+{
+	THROW_IF_ERROR(pDirectCmdListAlloc->Reset());
+	THROW_IF_ERROR(pCommandList->Reset(pDirectCmdListAlloc.Get(), nullptr));
+	//创建常量缓冲的描述符堆
+	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
+	cbvHeapDesc.NumDescriptors = 1;
+	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	cbvHeapDesc.NodeMask = 0;
+	THROW_IF_ERROR(pID3DDevice->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(CBufferViewHeap.GetAddressOf())));
+
+	//创建常量缓冲
+	UINT CBufferByteSize = CALC_CBUFFER_BYTE_SIZE(sizeof(ObjectConstants));
+	CD3DX12_HEAP_PROPERTIES hp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	CD3DX12_RESOURCE_DESC rd = CD3DX12_RESOURCE_DESC::Buffer(CBufferByteSize);
+	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE, &rd, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(UploadCBuffer.GetAddressOf())));
+	//将常量缓冲的内容和CBufferDataPtr绑定
+	THROW_IF_ERROR(UploadCBuffer->Map(0, nullptr, reinterpret_cast<void**>(&CBufferDataPtr)));
+	D3D12_GPU_VIRTUAL_ADDRESS cbAddress = UploadCBuffer->GetGPUVirtualAddress();
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+	cbvDesc.BufferLocation = cbAddress;
+	cbvDesc.SizeInBytes = CBufferByteSize;
+	pID3DDevice->CreateConstantBufferView(&cbvDesc, CBufferViewHeap->GetCPUDescriptorHandleForHeapStart());
+
+	//创建根签名中的参数
+	CD3DX12_ROOT_PARAMETER slotRootParameter[1];
+	//给常量缓冲创建一个描述表
+	CD3DX12_DESCRIPTOR_RANGE cbvTable;
+	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable);
+	//创建根签名
+	CD3DX12_ROOT_SIGNATURE_DESC rootsigDesc = CD3DX12_ROOT_SIGNATURE_DESC(1, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	ComPtr<ID3D10Blob> serializedRootSig = nullptr;
+	ComPtr<ID3D10Blob> errorBlob = nullptr;
+	THROW_IF_ERROR(D3D12SerializeRootSignature(&rootsigDesc,D3D_ROOT_SIGNATURE_VERSION_1, serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf()));
+	if (errorBlob != nullptr){ OutputDebugStringA((char*)errorBlob->GetBufferPointer()); }
+	THROW_IF_ERROR(pID3DDevice->CreateRootSignature(0,serializedRootSig.Get()->GetBufferPointer(), serializedRootSig.Get()->GetBufferSize(), IID_PPV_ARGS(RootSignature.GetAddressOf())));
+
+	//设置几何体
+	//创建顶点缓冲视图
+	const UINT64 vbByteSize = 8 * sizeof(Vertex);
+	VertexBufferGpu = CreateDefaultBuffer(vertices, vbByteSize, VertexBufferUploader);
+	D3D12_VERTEX_BUFFER_VIEW vbv;
+	vbv.BufferLocation = VertexBufferGpu->GetGPUVirtualAddress();
+	vbv.StrideInBytes = sizeof(Vertex);
+	vbv.SizeInBytes = vbByteSize;
+	VertexBufferView = vbv;
+	//创建索引缓冲和视图
+	const UINT ibByteSize = 36 * sizeof(std::uint16_t);
+	IndexBufferGPU = CreateDefaultBuffer(indices, ibByteSize, IndexBufferUploader);
+	D3D12_INDEX_BUFFER_VIEW ibv;
+	ibv.BufferLocation = IndexBufferGPU->GetGPUVirtualAddress();
+	ibv.Format = DXGI_FORMAT_R16_UINT;
+	ibv.SizeInBytes = ibByteSize;
+	IndexBufferView = ibv;
+
+	//编译着色器和顶点输入布局
+	ByteCodeVS = CompileShader(L"D:\\LearnDirectX12\\LearnDirectX12\\Shaders\\DrawCube.hlsl",nullptr,"VS","vs_5_0");
+	ByteCodePS = CompileShader(L"D:\\LearnDirectX12\\LearnDirectX12\\Shaders\\DrawCube.hlsl", nullptr, "PS", "ps_5_0");
+	InputLayout[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	InputLayout[1] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+	//设置管线状态
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
+	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	psoDesc.InputLayout = { InputLayout ,2};
+	psoDesc.pRootSignature = RootSignature.Get();
+	psoDesc.VS = { reinterpret_cast<BYTE*>(ByteCodeVS.Get()->GetBufferPointer()),ByteCodeVS.Get()->GetBufferSize() };
+	psoDesc.PS = { reinterpret_cast<BYTE*>(ByteCodePS.Get()->GetBufferPointer()),ByteCodePS.Get()->GetBufferSize() };
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = mBackBufferFormat;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleDesc.Quality = 0;
+	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	THROW_IF_ERROR(pID3DDevice->CreateGraphicsPipelineState(&psoDesc,IID_PPV_ARGS(&PipelineState)));
+
+	//将上述操作提交执行
+	THROW_IF_ERROR(pCommandList->Close());
+	ID3D12CommandList* cmdLists[] = {pCommandList.Get()};
+	pCommandQueue->ExecuteCommandLists(_countof(cmdLists),cmdLists);
+	FlushCommandQueue();
+}
+void Graphics::QuitBox()
+{
+	UploadCBuffer->Unmap(0,nullptr);
+}
+void Graphics::DrawEmpty() {
+	THROW_IF_ERROR(pDirectCmdListAlloc->Reset());
+	THROW_IF_ERROR(pCommandList->Reset(pDirectCmdListAlloc.Get(), nullptr));
+
+	CD3DX12_RESOURCE_BARRIER rb = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pCommandList->ResourceBarrier(1, &rb);
+	rb = CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	pCommandList->ResourceBarrier(1, &rb);
+
+	pCommandList->RSSetScissorRects(1, &pRECT);
+	pCommandList->RSSetViewports(1, &pViewPort);
+
+	pCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
+	pCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+	auto cbv = CurrentBackBufferView();
+	auto dsv = DepthStencilView();
+	pCommandList->OMSetRenderTargets(1, &cbv, true, &dsv);
+
+	rb = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	pCommandList->ResourceBarrier(1, &rb);
+	rb = CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_COMMON);
+	pCommandList->ResourceBarrier(1, &rb);
+
+	THROW_IF_ERROR(pCommandList->Close());
+	ID3D12CommandList* cmdsLists[] = { pCommandList.Get() };
+	pCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	THROW_IF_ERROR(pIDXGISwapChain->Present(0, 0));
+	CurrentBackBufferIndex = (CurrentBackBufferIndex + 1) % mBackBufferCount;
+	FlushCommandQueue();
+}
+
+void Graphics::DrawBox()
+{
+	THROW_IF_ERROR(pDirectCmdListAlloc->Reset());
+	THROW_IF_ERROR(pCommandList->Reset(pDirectCmdListAlloc.Get(), nullptr));
+	//设置裁剪举行和视口
+	pCommandList->RSSetScissorRects(1, &pRECT);
+	pCommandList->RSSetViewports(1, &pViewPort);
+	//把后缓冲设置为渲染目标
+	CD3DX12_RESOURCE_BARRIER rb = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pCommandList->ResourceBarrier(1, &rb);
+	//清空渲染目标和深度模板缓冲
+	pCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
+	pCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+	//设置渲染目标
+	D3D12_CPU_DESCRIPTOR_HANDLE cbv = CurrentBackBufferView();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv = DepthStencilView();
+	pCommandList->OMSetRenderTargets(1, &cbv, true, &dsv);
+	//设置常量缓冲描述符堆
+	ID3D12DescriptorHeap* descriptorHeaps[] = {CBufferViewHeap.Get()};
+	pCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	//设置根签名
+	pCommandList->SetGraphicsRootSignature(RootSignature.Get());
+	//绑定顶点和索引缓冲
+	pCommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
+	pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pCommandList->IASetIndexBuffer(&IndexBufferView);
+	//设置根描述符表
+	pCommandList->SetGraphicsRootDescriptorTable(0,CBufferViewHeap->GetGPUDescriptorHandleForHeapStart());
+	//设置管线状态
+	pCommandList->SetPipelineState(PipelineState.Get());
+	//绘制
+	pCommandList->DrawIndexedInstanced(36,1,0,0,0);
+	//后缓冲转换为呈现状态
+	rb = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	pCommandList->ResourceBarrier(1, &rb);
+	//提交命令，翻转交换链，清空队列
+	THROW_IF_ERROR(pCommandList->Close());
+	ID3D12CommandList* cmdsLists[] = { pCommandList.Get() };
+	pCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	THROW_IF_ERROR(pIDXGISwapChain->Present(0, 0));
+	CurrentBackBufferIndex = (CurrentBackBufferIndex + 1) % mBackBufferCount;
+	FlushCommandQueue();
+}
