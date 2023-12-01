@@ -1,8 +1,10 @@
 #include "Graphics.h"
 
 void Graphics::CreateDebugLayer() {
+#ifdef DEBUG || _DEBUG
 	THROW_IF_ERROR(D3D12GetDebugInterface(IID_PPV_ARGS(&pDebugController)));
 	pDebugController->EnableDebugLayer();
+#endif // (DEBUG) || (_DEBUG)
 }
 
 void Graphics::CreateDXGIFactory() {

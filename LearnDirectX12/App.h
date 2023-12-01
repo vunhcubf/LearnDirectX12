@@ -1,9 +1,7 @@
 #pragma once
-#include "MyWindow.h"
 #include <vector>
 #include <windowsx.h>
 #include <sstream>
-#include "KeyBoard.h"
 #include "Graphics.h"
 #include "Camera.h"
 #include "GameTimer.h"
@@ -18,6 +16,7 @@ public:
 	int QuitAppCounter=0;
 	MyWindow* GetWindows()const;
 
+	WindowsEventManager* eventManager;
 	HINSTANCE hInstance;
 	HINSTANCE hPrevInstance;
 	LPSTR lpCmdLine;

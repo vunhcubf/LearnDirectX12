@@ -1,9 +1,18 @@
 #include "App.h"
 
 void App::Initlize() {
-	camera = Camera(800,600);
-	windows = MyWindow::RegisterForm(hInstance, 800, 600, L"LearnDx12", L"Main");
-	windows->camera = &camera;
+	eventManager = new WindowsEventManager();
+	camera = Camera(1280,720);
+	windows = MyWindow::RegisterForm(hInstance, 1280, 720, L"Hello World!", L"Hello World!");
+	windows->SetWindowEventHandlePtr(eventManager);
+
+	//×¢²áCameraµÄÊÂ¼þ
+	windows->GetWindowEventHandlePtr()->RegisterEvent(EventType::KEYDOWN,(void*)&camera,Camera::InvokeEvent_KEYDOWN);
+	windows->GetWindowEventHandlePtr()->RegisterEvent(EventType::KEYUP, (void*)&camera, Camera::InvokeEvent_KEYUP);
+	windows->GetWindowEventHandlePtr()->RegisterEvent(EventType::RBUTTONDOWN, (void*)&camera, Camera::InvokeEvent_RBUTTONDOWN);
+	windows->GetWindowEventHandlePtr()->RegisterEvent(EventType::RBUTTONUP, (void*)&camera, Camera::InvokeEvent_RBUTTONUP);
+	windows->GetWindowEventHandlePtr()->RegisterEvent(EventType::MOUSEMOVE, (void*)&camera, Camera::InvokeEvent_MOUSEMOVE);
+
 	MyWindow::ShowForm(windows);
 	graphics = new Graphics(windows);
 	graphics->InitBox();
@@ -26,9 +35,9 @@ void App::Quit() {
 	this->graphics->QuitBox();
 	delete windows;
 	delete graphics;
+	delete eventManager;
 }
 void App::DoFrame() {
-	//this->graphics.at(0)->DrawEmpty();
 	camera.OnUpdate((int)timer.mDeltaTime.count());
 	graphics->Update(&camera);
 	graphics->DrawBox();

@@ -113,65 +113,23 @@ LRESULT CALLBACK MyWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 		PostQuitMessage(WM_QUIT);
 		return 0;
 		break;
-	case WM_KILLFOCUS:
-		keyBoard.ClearState();
-		break;
 	case WM_KEYDOWN:
-		//如果是第一次按下或者开启了连按
-		//if (!(lParam & 0x40000000) || keyBoard.AutorepeatIsEnabled()) {
-		//	keyBoard.OnKeyPressed(unsigned char(wParam));
-		//}
-		if (unsigned char(wParam) == 'W') {
-			this->camera->OnWPressed();
-		}
+		eventManager->TriggerEvents_KEYDOWN(hWnd, msg, wParam,lParam);
 		break;
 	case WM_KEYUP:
-		//keyBoard.OnKeyReleased(unsigned char(wParam));
-		if (unsigned char(wParam) == 'W') {
-			this->camera->OnWReleased();
-		}
-		break;
-	case WM_CHAR:
-		keyBoard.OnChar(unsigned char(wParam));
-		break;
-	case WM_LBUTTONDOWN:
-		mouse.OnLeftPressed();
-		break;
-	case WM_LBUTTONUP:
-		mouse.OnLeftReleased();
+		eventManager->TriggerEvents_KEYUP(hWnd, msg, wParam, lParam);
 		break;
 	case WM_RBUTTONDOWN:
-		mouse.OnRightPressed();
-		this->camera->OnRightButtonDown();
+		eventManager->TriggerEvents_RBUTTONDOWN(hWnd, msg, wParam, lParam);
 		break;
 	case WM_RBUTTONUP:
-		mouse.OnRightReleased();
-		this->camera->OnRightButtonUp();
+		eventManager->TriggerEvents_RBUTTONUP(hWnd, msg, wParam, lParam);
 		break;
-	case WM_MOUSEMOVE: {
-		const POINTS pt = MAKEPOINTS(lParam);
-		if (pt.x >= 0 && pt.y >= 0 && pt.x <= Width && pt.y <= Height) {
-			mouse.OnMouseMove(pt.x, pt.y);
-			if (!mouse.isInWindow) {
-				SetCapture(hWnd);
-				mouse.OnMouseEnter();
-			}
-		}
-		else {
-			if (mouse.LeftIsPressed() || mouse.RightIsPressed()) {
-				mouse.OnMouseMove(pt.x, pt.y);
-			}
-			else {
-				ReleaseCapture();
-				mouse.OnMouseLeave();
-			}
-		}
-		this->camera->OnMouseMove(pt.x,pt.y);
-		break;
-	}
-	case WM_MOUSEWHEEL:
-		const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-		mouse.OnWheelDelta(delta);
+	case WM_MOUSEMOVE: 
+		RECT rect;
+		GetWindowRect(hWnd, &rect);
+		ClipCursor(&rect);
+		eventManager->TriggerEvents_MOUSEMOVE(hWnd, msg, wParam, lParam);
 		break;
 	}
 	return DefWindowProc(hWnd, msg, wParam, lParam);

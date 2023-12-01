@@ -9,15 +9,9 @@ GameTimer::GameTimer()
 
 void GameTimer::Tick()
 {
+	std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	mCurTime = std::chrono::steady_clock::now();
-	std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(mCurTime - mPrevTime);
-	if (duration < MinFrameTime) {
-		std::this_thread::sleep_for(MinFrameTime - duration);
-		mDeltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(mCurTime - mPrevTime+ MinFrameTime - duration);
-	}
-	else {
-		mDeltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(mCurTime - mPrevTime);
-	}
+	mDeltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(mCurTime - mPrevTime);
 }
 
 void GameTimer::DisplayFps(MyWindow* Wnd)

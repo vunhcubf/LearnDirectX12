@@ -13,9 +13,8 @@ int CALLBACK WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR lpCmdLine
 			app->DoFrame();
 
 			app->timer.Tick();
-			app->timer.DisplayFps(app->GetWindows());
-			//timer.DisplayFps(app->GetWindows().at(1));
 			app->timer.SetPrevTime();
+			app->timer.DisplayFps(app->GetWindows());
 		}
 		app->Quit();
 	}
