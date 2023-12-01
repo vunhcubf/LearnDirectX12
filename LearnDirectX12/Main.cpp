@@ -5,18 +5,17 @@ int CALLBACK WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR lpCmdLine
 	try {
 		App* app = new App(hInstance, hPrevInstance, lpCmdLine,mCmdShow);
 		app->Initlize();
-		GameTimer timer;
 		while (true) {
 			app->ProcessMessage();
-			if (app->QuitAppCounter == app->GetWindowsCount()) {
+			if (app->QuitAppCounter == 1) {
 				break;
 			}
 			app->DoFrame();
 
-			timer.Tick();
-			timer.DisplayFps(app->GetWindows().at(0));
+			app->timer.Tick();
+			app->timer.DisplayFps(app->GetWindows());
 			//timer.DisplayFps(app->GetWindows().at(1));
-			timer.SetPrevTime();
+			app->timer.SetPrevTime();
 		}
 		app->Quit();
 	}

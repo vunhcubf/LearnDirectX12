@@ -1,26 +1,5 @@
 #include "Graphics.h"
 
-void Graphics::SelectVideoCard() {
-	for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != pIDXGIFactory5->EnumAdapters1(adapterIndex, &pIAdapter); ++adapterIndex)
-	{
-		DXGI_ADAPTER_DESC1 desc = {};
-		pIAdapter->GetDesc1(&desc);
-		if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-		{//软件虚拟适配器，跳过
-			continue;
-		}
-		//检查适配器对D3D支持的兼容级别，这里直接要求支持12.1的能力，注意返回接口的那个参数被置为了nullptr，这样
-		//就不会实际创建一个设备了，也不用我们啰嗦的再调用release来释放接口。这也是一个重要的技巧，请记住！
-		if (SUCCEEDED(D3D12CreateDevice(pIAdapter.Get(), D3D_FEATURE_LEVEL_12_2, _uuidof(ID3D12Device), nullptr)))
-		{
-			break;
-		}
-		if (desc.VendorId == 0x10DE) { // 替换为目标显卡的厂商ID
-			break;
-		}
-	}
-}
-
 void Graphics::CreateDebugLayer() {
 	THROW_IF_ERROR(D3D12GetDebugInterface(IID_PPV_ARGS(&pDebugController)));
 	pDebugController->EnableDebugLayer();
@@ -32,11 +11,10 @@ void Graphics::CreateDXGIFactory() {
 #else
 	THROW_IF_ERROR(CreateDXGIFactory1(IID_PPV_ARGS(&pIDXGIFactory5)));
 #endif
-	THROW_IF_ERROR(pIDXGIFactory5->MakeWindowAssociation(this->hWnd, DXGI_MWA_NO_ALT_ENTER));
 }
 
 void Graphics::CreateDevice() {
-	THROW_IF_ERROR(D3D12CreateDevice(pIAdapter.Get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&pID3DDevice)));
+	THROW_IF_ERROR(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&pID3DDevice)));
 }
 
 void Graphics::CreateFence() {
@@ -68,7 +46,6 @@ void Graphics::CreateCmdQueueAllocList() {
 }
 
 void Graphics::CreateSwapChain() {
-	//if (pIDXGISwapChain != nullptr) { pIDXGISwapChain.Reset(); }
 	DXGI_SWAP_CHAIN_DESC sd;
 	sd.BufferDesc.Width = this->Width;
 	sd.BufferDesc.Height = this->Height;
@@ -88,6 +65,7 @@ void Graphics::CreateSwapChain() {
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	THROW_IF_ERROR(this->pIDXGIFactory5->CreateSwapChain(this->pCommandQueue.Get(), &sd, pIDXGISwapChain.GetAddressOf()));
+	THROW_IF_ERROR(pIDXGIFactory5->MakeWindowAssociation(this->hWnd, DXGI_MWA_NO_ALT_ENTER));
 }
 
 void Graphics::CreateRTVAndDescriptorHeaps() {
@@ -133,11 +111,9 @@ void Graphics::CreateDSVForBackBuffer() {
 	optClear.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	optClear.DepthStencil.Depth = 1.0f;
 	optClear.DepthStencil.Stencil = 0;
-	D3D12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &depthstnecilDesc, D3D12_RESOURCE_STATE_COMMON, &optClear, IID_PPV_ARGS(mDepthStencilBuffer.GetAddressOf())));
+	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, &depthstnecilDesc, D3D12_RESOURCE_STATE_COMMON, &optClear, IID_PPV_ARGS(mDepthStencilBuffer.GetAddressOf())));
 	pID3DDevice->CreateDepthStencilView(mDepthStencilBuffer.Get(), nullptr, DepthStencilView());
-	CD3DX12_RESOURCE_BARRIER rb = CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	pCommandList->ResourceBarrier(1, &rb);
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 }
 
 void Graphics::CreateAndSetViewPort() {
@@ -181,23 +157,18 @@ ID3D12Resource* Graphics::CurrentBackBuffer()const
 ComPtr<ID3D12Resource> Graphics::CreateDefaultBuffer(const void* initData, UINT64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer)
 {
 	ComPtr<ID3D12Resource> defaultBuffer;
-	CD3DX12_HEAP_PROPERTIES hp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	CD3DX12_RESOURCE_DESC rd = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
-	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE, &rd, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
-	hp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE, &rd, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
+	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, &CD3DX12_RESOURCE_DESC::Buffer(byteSize), D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
+	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE, &CD3DX12_RESOURCE_DESC::Buffer(byteSize), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
 	D3D12_SUBRESOURCE_DATA subResourceData = {};
 	subResourceData.pData = initData;
 	subResourceData.RowPitch = byteSize;
 	subResourceData.SlicePitch = subResourceData.RowPitch;
 
-	CD3DX12_RESOURCE_BARRIER rb = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
-	pCommandList->ResourceBarrier(1, &rb);
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
 
 	UpdateSubresources<1>(pCommandList.Get(), defaultBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &subResourceData);
 
-	rb = CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
-	pCommandList->ResourceBarrier(1, &rb);
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 	return defaultBuffer;
 }
 
@@ -221,7 +192,6 @@ Graphics::Graphics(MyWindow* Wnd) {
 
 	CreateDebugLayer();
 	CreateDXGIFactory();
-	SelectVideoCard();
 	CreateDevice();
 	CreateFence();
 	mRTVDescriptorSize = pID3DDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -255,9 +225,7 @@ void Graphics::InitBox()
 
 	//创建常量缓冲
 	UINT CBufferByteSize = CALC_CBUFFER_BYTE_SIZE(sizeof(ObjectConstants));
-	CD3DX12_HEAP_PROPERTIES hp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-	CD3DX12_RESOURCE_DESC rd = CD3DX12_RESOURCE_DESC::Buffer(CBufferByteSize);
-	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE, &rd, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(UploadCBuffer.GetAddressOf())));
+	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE, &CD3DX12_RESOURCE_DESC::Buffer(CBufferByteSize), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(UploadCBuffer.GetAddressOf())));
 	//将常量缓冲的内容和CBufferDataPtr绑定
 	THROW_IF_ERROR(UploadCBuffer->Map(0, nullptr, reinterpret_cast<void**>(&CBufferDataPtr)));
 	D3D12_GPU_VIRTUAL_ADDRESS cbAddress = UploadCBuffer->GetGPUVirtualAddress();
@@ -320,6 +288,8 @@ void Graphics::InitBox()
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 	THROW_IF_ERROR(pID3DDevice->CreateGraphicsPipelineState(&psoDesc,IID_PPV_ARGS(&PipelineState)));
 
 	//将上述操作提交执行
@@ -336,10 +306,8 @@ void Graphics::DrawEmpty() {
 	THROW_IF_ERROR(pDirectCmdListAlloc->Reset());
 	THROW_IF_ERROR(pCommandList->Reset(pDirectCmdListAlloc.Get(), nullptr));
 
-	CD3DX12_RESOURCE_BARRIER rb = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pCommandList->ResourceBarrier(1, &rb);
-	rb = CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	pCommandList->ResourceBarrier(1, &rb);
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
 	pCommandList->RSSetScissorRects(1, &pRECT);
 	pCommandList->RSSetViewports(1, &pViewPort);
@@ -351,10 +319,8 @@ void Graphics::DrawEmpty() {
 	auto dsv = DepthStencilView();
 	pCommandList->OMSetRenderTargets(1, &cbv, true, &dsv);
 
-	rb = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	pCommandList->ResourceBarrier(1, &rb);
-	rb = CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_COMMON);
-	pCommandList->ResourceBarrier(1, &rb);
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_COMMON));
 
 	THROW_IF_ERROR(pCommandList->Close());
 	ID3D12CommandList* cmdsLists[] = { pCommandList.Get() };
@@ -367,20 +333,18 @@ void Graphics::DrawEmpty() {
 void Graphics::DrawBox()
 {
 	THROW_IF_ERROR(pDirectCmdListAlloc->Reset());
-	THROW_IF_ERROR(pCommandList->Reset(pDirectCmdListAlloc.Get(), nullptr));
-	//设置裁剪举行和视口
+	THROW_IF_ERROR(pCommandList->Reset(pDirectCmdListAlloc.Get(), PipelineState.Get()));
+	//设置裁剪矩形和视口
 	pCommandList->RSSetScissorRects(1, &pRECT);
 	pCommandList->RSSetViewports(1, &pViewPort);
+	
 	//把后缓冲设置为渲染目标
-	CD3DX12_RESOURCE_BARRIER rb = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	pCommandList->ResourceBarrier(1, &rb);
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 	//清空渲染目标和深度模板缓冲
 	pCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
 	pCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	//设置渲染目标
-	D3D12_CPU_DESCRIPTOR_HANDLE cbv = CurrentBackBufferView();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv = DepthStencilView();
-	pCommandList->OMSetRenderTargets(1, &cbv, true, &dsv);
+	pCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 	//设置常量缓冲描述符堆
 	ID3D12DescriptorHeap* descriptorHeaps[] = {CBufferViewHeap.Get()};
 	pCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -392,18 +356,22 @@ void Graphics::DrawBox()
 	pCommandList->IASetIndexBuffer(&IndexBufferView);
 	//设置根描述符表
 	pCommandList->SetGraphicsRootDescriptorTable(0,CBufferViewHeap->GetGPUDescriptorHandleForHeapStart());
-	//设置管线状态
-	pCommandList->SetPipelineState(PipelineState.Get());
 	//绘制
 	pCommandList->DrawIndexedInstanced(36,1,0,0,0);
 	//后缓冲转换为呈现状态
-	rb = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	pCommandList->ResourceBarrier(1, &rb);
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	//提交命令，翻转交换链，清空队列
 	THROW_IF_ERROR(pCommandList->Close());
 	ID3D12CommandList* cmdsLists[] = { pCommandList.Get() };
 	pCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
 	THROW_IF_ERROR(pIDXGISwapChain->Present(0, 0));
 	CurrentBackBufferIndex = (CurrentBackBufferIndex + 1) % mBackBufferCount;
 	FlushCommandQueue();
+}
+
+void Graphics::Update(Camera* camera){
+	ObjectConstants obj;
+	XMStoreFloat4x4(&obj.WorldViewProj, XMMatrixTranspose(camera->CameraVPMatrix));
+	memcpy(CBufferDataPtr,&obj,sizeof(ObjectConstants));
 }

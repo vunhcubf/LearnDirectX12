@@ -5,6 +5,7 @@
 #include <sstream>
 #include "KeyBoard.h"
 #include "Graphics.h"
+#include "Camera.h"
 #include "GameTimer.h"
 
 class App {
@@ -14,14 +15,15 @@ public:
 	void DoFrame();
 	void Quit();
 	void ProcessMessage();
-	int GetWindowsCount()const { return windows.size(); }
 	int QuitAppCounter=0;
-	std::vector<MyWindow*> GetWindows()const;
-private:
+	MyWindow* GetWindows()const;
+
 	HINSTANCE hInstance;
 	HINSTANCE hPrevInstance;
 	LPSTR lpCmdLine;
 	int mCmdShow;
-	std::vector<MyWindow*> windows;
-	std::vector<Graphics*> graphics;
+	MyWindow* windows;
+	Graphics* graphics;
+	Camera camera;
+	GameTimer timer;
 };

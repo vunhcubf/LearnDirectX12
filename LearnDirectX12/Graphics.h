@@ -37,7 +37,6 @@ public:
 	~Graphics() {
 		if (pID3DDevice != nullptr) { FlushCommandQueue(); }
 	}
-	void SelectVideoCard();
 	void CreateDebugLayer();
 	void CreateDXGIFactory();
 	void CreateDevice();
@@ -65,6 +64,7 @@ public:
 	
 	///////////////////////////////////画方块用到的东西//////////////////////////////
 	void DrawBox();
+	void Update(Camera* camera);
 	void InitBox();
 	void QuitBox();
 	struct Vertex
@@ -73,11 +73,7 @@ public:
 		XMFLOAT4 Color;
 	};
 	struct ObjectConstants {
-		XMFLOAT4X4 WorldViewProj = XMFLOAT4X4(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f);
+		XMFLOAT4X4 WorldViewProj = XMFLOAT4X4(0,0,0,1 ,0,1,0,0 ,0,0,1,0 ,0,0,0,1);
 	};
 	ComPtr<ID3D12Resource> VertexBufferGpu = nullptr;
 	ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
@@ -86,6 +82,9 @@ public:
 	ComPtr<ID3D12Resource> UploadCBuffer = nullptr;
 	ComPtr<ID3D12RootSignature> RootSignature = nullptr;
 	ComPtr<ID3D12PipelineState> PipelineState = nullptr;
+
+	XMMATRIX ProjMatrix;
+	XMMATRIX ViewMatrix;
 
 	D3D12_INPUT_ELEMENT_DESC InputLayout[2];
 	BYTE* CBufferDataPtr;
@@ -96,15 +95,15 @@ public:
 	D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 
 	Vertex vertices[8] = {
-	{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) },
-	{ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) },
-	{ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) },
-	{ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) },
-	{ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) },
-	{ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) },
-	{ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) },
-	{ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) }
-	};
+{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) },
+{ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) },
+{ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) },
+{ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) },
+{ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) },
+{ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) },
+{ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) },
+{ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) }
+};
 	std::uint16_t indices[36] = {
 		// 立方体前表面
 		0, 1, 2,

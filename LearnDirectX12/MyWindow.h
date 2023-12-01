@@ -5,6 +5,7 @@
 #include "KeyBoard.h"
 #include "Mouse.h"
 #include "resource.h"
+#include "Camera.h"
 
 class MyWindow
 {
@@ -20,25 +21,10 @@ public:
 		private:
 			HRESULT hr;
 	};
-
-	MyWindow(HINSTANCE hInstance,int width,int height) noexcept :hInstance(hInstance), Width(width),Height(height){};
-	void SetHWND(HWND hWnd) {
-		this->hWnd = hWnd;
-	}
-	MyWindow(const MyWindow& Wnd) noexcept {
-		this->hInstance = Wnd.hInstance;
-		this->hWnd = Wnd.hWnd;
-		this->Height = Wnd.Height;
-		this->Width = Wnd.Width;
-	}
-	MyWindow(const MyWindow&& Wnd) noexcept{
-		this->hInstance = Wnd.hInstance;
-		this->hWnd = Wnd.hWnd;
-		this->Height = Wnd.Height;
-		this->Width = Wnd.Width;
-	}
 	KeyBoard keyBoard;
 	Mouse mouse;
+	Camera* camera;
+	
 	std::wstring WindowTitle;
 	bool IsActive = false;
 	int Width;
@@ -56,6 +42,23 @@ public:
 	static MyWindow* RegisterForm(HINSTANCE hInstance, int width, int height, std::wstring pClassName, std::wstring lpWndName);
 	static MyWindow* RegisterForm(HINSTANCE hInstance, int width, int height, std::wstring pClassName, std::wstring lpWndName, LRESULT(CALLBACK* WndProc)(HWND, UINT, WPARAM, LPARAM));
 	static void ShowForm(MyWindow* form);
+
+	MyWindow(HINSTANCE hInstance, int width, int height) noexcept :hInstance(hInstance), Width(width), Height(height) {};
+	void SetHWND(HWND hWnd) {
+		this->hWnd = hWnd;
+	}
+	MyWindow(const MyWindow& Wnd) noexcept {
+		this->hInstance = Wnd.hInstance;
+		this->hWnd = Wnd.hWnd;
+		this->Height = Wnd.Height;
+		this->Width = Wnd.Width;
+	}
+	MyWindow(const MyWindow&& Wnd) noexcept {
+		this->hInstance = Wnd.hInstance;
+		this->hWnd = Wnd.hWnd;
+		this->Height = Wnd.Height;
+		this->Width = Wnd.Width;
+	}
 };
 #define MY_EXCEPTION( hr ) MyWindow::Exception(__LINE__, __FILE__, hr)
 #define THROW_IF_ERROR( hr ) if (FAILED(hr)){ throw MyWindow::Exception(__LINE__, __FILE__, hr); }

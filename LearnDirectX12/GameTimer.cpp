@@ -1,5 +1,6 @@
 #include "GameTimer.h"
 #include <stdio.h>
+#include <thread>
 
 GameTimer::GameTimer()
 {

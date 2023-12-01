@@ -38,6 +38,7 @@ MyWindow* MyWindow::RegisterForm(HINSTANCE hInstance, int width, int height, std
 void MyWindow::ShowForm(MyWindow* window) {
 	window->IsActive = true;
 	ShowWindow(window->hWnd, SW_SHOWDEFAULT);
+	UpdateWindow(window->hWnd);
 }
 
 MyWindow::Exception::Exception(int line, const char* file, HRESULT hr) noexcept
@@ -110,18 +111,25 @@ LRESULT CALLBACK MyWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 	switch (msg) {
 	case WM_CLOSE:
 		PostQuitMessage(WM_QUIT);
-		break;
 		return 0;
+		break;
 	case WM_KILLFOCUS:
 		keyBoard.ClearState();
-	case WM_SYSKEYDOWN:
+		break;
+	case WM_KEYDOWN:
 		//如果是第一次按下或者开启了连按
-		if (!(lParam & 0x40000000) || keyBoard.AutorepeatIsEnabled()) {
-			keyBoard.OnKeyPressed(unsigned char(wParam));
+		//if (!(lParam & 0x40000000) || keyBoard.AutorepeatIsEnabled()) {
+		//	keyBoard.OnKeyPressed(unsigned char(wParam));
+		//}
+		if (unsigned char(wParam) == 'W') {
+			this->camera->OnWPressed();
 		}
 		break;
-	case WM_SYSKEYUP:
-		keyBoard.OnKeyReleased(unsigned char(wParam));
+	case WM_KEYUP:
+		//keyBoard.OnKeyReleased(unsigned char(wParam));
+		if (unsigned char(wParam) == 'W') {
+			this->camera->OnWReleased();
+		}
 		break;
 	case WM_CHAR:
 		keyBoard.OnChar(unsigned char(wParam));
@@ -134,9 +142,11 @@ LRESULT CALLBACK MyWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 		break;
 	case WM_RBUTTONDOWN:
 		mouse.OnRightPressed();
+		this->camera->OnRightButtonDown();
 		break;
 	case WM_RBUTTONUP:
 		mouse.OnRightReleased();
+		this->camera->OnRightButtonUp();
 		break;
 	case WM_MOUSEMOVE: {
 		const POINTS pt = MAKEPOINTS(lParam);
@@ -156,11 +166,13 @@ LRESULT CALLBACK MyWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 				mouse.OnMouseLeave();
 			}
 		}
+		this->camera->OnMouseMove(pt.x,pt.y);
 		break;
 	}
 	case WM_MOUSEWHEEL:
 		const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
 		mouse.OnWheelDelta(delta);
+		break;
 	}
 	return DefWindowProc(hWnd, msg, wParam, lParam);
 }
