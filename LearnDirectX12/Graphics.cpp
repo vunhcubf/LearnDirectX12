@@ -148,6 +148,22 @@ D3D12_CPU_DESCRIPTOR_HANDLE Graphics::CurrentBackBufferView() const {
 	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVHeap->GetCPUDescriptorHandleForHeapStart(), this->CurrentBackBufferIndex, this->mRTVDescriptorSize);
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewCpuHandleFromCBV_SRV_UAVHeap(UINT* Index)
+{
+	return CD3DX12_CPU_DESCRIPTOR_HANDLE(CBV_SRV_UAVHeap->GetCPUDescriptorHandleForHeapStart(), *Index, this->mCBVUAVDescriptorSize);
+}
+D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromCBV_SRV_UAVHeap(UINT* Index)
+{
+	return CD3DX12_GPU_DESCRIPTOR_HANDLE(CBV_SRV_UAVHeap->GetGPUDescriptorHandleForHeapStart(), *Index, this->mCBVUAVDescriptorSize);
+}
+
+UINT Graphics::AddViewOnCBVHeap(D3D12_CONSTANT_BUFFER_VIEW_DESC* desc)
+{
+	pID3DDevice->CreateConstantBufferView(desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(CBV_SRV_UAVHeap->GetCPUDescriptorHandleForHeapStart(), CBV_SRV_UAVHeap_StackPtr, this->mCBVUAVDescriptorSize));
+	CBV_SRV_UAVHeap_StackPtr++;
+	return CBV_SRV_UAVHeap_StackPtr - 1;
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE Graphics::DepthStencilView() const {
 	return mDSVHeap->GetCPUDescriptorHandleForHeapStart();
 }
@@ -169,6 +185,23 @@ ComPtr<ID3D12Resource> Graphics::CreateDefaultBuffer(const void* initData, UINT6
 	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
 
 	UpdateSubresources<1>(pCommandList.Get(), defaultBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &subResourceData);
+
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
+	return defaultBuffer;
+}
+ComPtr<ID3D12Resource> Graphics::CreateDefaultBuffer(const void* initData, UINT64 byteSize,ID3D12Resource* uploadBuffer)
+{
+	ComPtr<ID3D12Resource> defaultBuffer;
+	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, &CD3DX12_RESOURCE_DESC::Buffer(byteSize), D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
+	THROW_IF_ERROR(pID3DDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE, &CD3DX12_RESOURCE_DESC::Buffer(byteSize), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&uploadBuffer)));
+	D3D12_SUBRESOURCE_DATA subResourceData = {};
+	subResourceData.pData = initData;
+	subResourceData.RowPitch = byteSize;
+	subResourceData.SlicePitch = subResourceData.RowPitch;
+
+	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
+
+	UpdateSubresources<1>(pCommandList.Get(), defaultBuffer.Get(), uploadBuffer, 0, 0, 1, &subResourceData);
 
 	pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 	return defaultBuffer;
@@ -203,6 +236,15 @@ Graphics::Graphics(MyWindow* Wnd) {
 	CreateCmdQueueAllocList();
 	CreateSwapChain();
 	CreateRTVAndDescriptorHeaps();
+	//创建常量缓冲的描述符堆
+	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
+	//预定描述符堆的容量为64个
+	cbvHeapDesc.NumDescriptors = 64;
+	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	cbvHeapDesc.NodeMask = 0;
+	THROW_IF_ERROR(pID3DDevice->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(CBV_SRV_UAVHeap.GetAddressOf())));
+
 	CreateRTVForBackBuffers();
 	CreateDSVForBackBuffer();
 	CreateAndSetViewPort();

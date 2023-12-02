@@ -24,12 +24,6 @@
     <ClCompile Include="MyException.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="KeyBoard.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Mouse.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="App.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -45,6 +39,9 @@
     <ClCompile Include="EventManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyWindow.h">
@@ -54,12 +51,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="KeyBoard.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Mouse.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="App.h">
@@ -75,6 +66,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="EventManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

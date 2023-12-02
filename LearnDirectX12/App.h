@@ -3,7 +3,6 @@
 #include <windowsx.h>
 #include <sstream>
 #include "Graphics.h"
-#include "Camera.h"
 #include "GameTimer.h"
 
 class App {

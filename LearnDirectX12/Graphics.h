@@ -1,6 +1,5 @@
 #pragma once
 #include <DirectXColors.h>
-#include "MyWindow.h"
 #include <dxgi.h>
 #include "Camera.h"
 #include <SDKDDKVer.h>
@@ -53,10 +52,13 @@ public:
 	void FlushCommandQueue();
 
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView()const;
+	D3D12_CPU_DESCRIPTOR_HANDLE FetchIndexedViewCpuHandleFromCBV_SRV_UAVHeap(UINT* Index);
+	D3D12_GPU_DESCRIPTOR_HANDLE FetchIndexedViewGpuHandleFromCBV_SRV_UAVHeap(UINT* Index);
+	UINT AddViewOnCBVHeap(D3D12_CONSTANT_BUFFER_VIEW_DESC* desc);
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView()const;
 	ID3D12Resource* CurrentBackBuffer()const;
 	ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData,UINT64 byteSize,ComPtr<ID3D12Resource>& uploadBuffer);
-
+	ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData, UINT64 byteSize, ID3D12Resource* uploadBuffer);
 	static ComPtr<ID3DBlob> CompileShader(const std::wstring& filename,const D3D_SHADER_MACRO* defines,const std::string& entrypoint,const std::string& target);
 
 	///////////////////////////////////»­¿Õ°×»­²¼////////////////////////////////////
@@ -91,7 +93,6 @@ public:
 	BYTE* CBufferDataPtr;
 	ComPtr<ID3DBlob> ByteCodeVS;
 	ComPtr<ID3DBlob> ByteCodePS;
-	ComPtr<ID3D12DescriptorHeap> CBufferViewHeap = nullptr;
 	D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 	D3D12_INDEX_BUFFER_VIEW IndexBufferView;
 
@@ -135,7 +136,7 @@ public:
 	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	bool IsSupport4xMSAA;
 	UINT m4xMSAAQuality;
-	UINT CurrentFence = 0;
+	UINT64 CurrentFence = 0;
 
 	HWND hWnd;
 	int Width;
@@ -151,6 +152,8 @@ public:
 
 	ComPtr<ID3D12DescriptorHeap> mRTVHeap;
 	ComPtr<ID3D12DescriptorHeap> mDSVHeap;
+	ComPtr<ID3D12DescriptorHeap> CBV_SRV_UAVHeap;
+	UINT CBV_SRV_UAVHeap_StackPtr = 0;
 
 	ComPtr<ID3D12Fence> pIFence;
 	D3D12_VIEWPORT pViewPort;
