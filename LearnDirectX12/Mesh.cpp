@@ -2,6 +2,9 @@
 
 void Mesh::InitializeAndUploadMesh(Graphics* graphics,bool UseDefaultCube)
 {
+	if (VertexBufferGpu) { VertexBufferGpu.Reset(); }
+	if (CBufferPerObjectForUpload) { CBufferPerObjectForUpload.Reset(); }
+	if (IndexBufferGpu) { IndexBufferGpu.Reset(); }
 	//设置几何体
 	//创建顶点缓冲视图
 	ID3D12Resource* VertexBufferUploaderTemp = nullptr;

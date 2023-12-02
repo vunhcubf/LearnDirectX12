@@ -54,6 +54,11 @@ public:
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView()const;
 	D3D12_CPU_DESCRIPTOR_HANDLE FetchIndexedViewCpuHandleFromCBV_SRV_UAVHeap(UINT* Index);
 	D3D12_GPU_DESCRIPTOR_HANDLE FetchIndexedViewGpuHandleFromCBV_SRV_UAVHeap(UINT* Index);
+	D3D12_CPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewCpuHandleFromRTVHeap(UINT* Index);
+	D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromRTVHeap(UINT* Index);
+	D3D12_CPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewCpuHandleFromDSVHeap(UINT* Index);
+	D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromDSVHeap(UINT* Index);
+
 	UINT AddViewOnCBVHeap(D3D12_CONSTANT_BUFFER_VIEW_DESC* desc);
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView()const;
 	ID3D12Resource* CurrentBackBuffer()const;
@@ -133,7 +138,8 @@ public:
 	UINT mCBVUAVDescriptorSize;
 	UINT CurrentBackBufferIndex = 0;
 	static constexpr UINT mBackBufferCount = 2;
-	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	static constexpr DXGI_FORMAT DefaultDSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	static constexpr DXGI_FORMAT DefaultRTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	bool IsSupport4xMSAA;
 	UINT m4xMSAAQuality;
 	UINT64 CurrentFence = 0;

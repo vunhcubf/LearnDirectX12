@@ -157,6 +157,24 @@ D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromCBV_SRV_UAVHe
 	return CD3DX12_GPU_DESCRIPTOR_HANDLE(CBV_SRV_UAVHeap->GetGPUDescriptorHandleForHeapStart(), *Index, this->mCBVUAVDescriptorSize);
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewCpuHandleFromRTVHeap(UINT* Index)
+{
+	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVHeap->GetCPUDescriptorHandleForHeapStart(), *Index, this->mRTVDescriptorSize);
+}
+D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromRTVHeap(UINT* Index)
+{
+	return CD3DX12_GPU_DESCRIPTOR_HANDLE(mRTVHeap->GetGPUDescriptorHandleForHeapStart(), *Index, this->mRTVDescriptorSize);
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewCpuHandleFromDSVHeap(UINT* Index)
+{
+	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mDSVHeap->GetCPUDescriptorHandleForHeapStart(), *Index, this->mDSVDescriptorSize);
+}
+D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromDSVHeap(UINT* Index)
+{
+	return CD3DX12_GPU_DESCRIPTOR_HANDLE(mDSVHeap->GetGPUDescriptorHandleForHeapStart(), *Index, this->mDSVDescriptorSize);
+}
+
 UINT Graphics::AddViewOnCBVHeap(D3D12_CONSTANT_BUFFER_VIEW_DESC* desc)
 {
 	pID3DDevice->CreateConstantBufferView(desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(CBV_SRV_UAVHeap->GetCPUDescriptorHandleForHeapStart(), CBV_SRV_UAVHeap_StackPtr, this->mCBVUAVDescriptorSize));
