@@ -4,6 +4,11 @@
 #include <sstream>
 #include "Graphics.h"
 #include "GameTimer.h"
+#include "Mesh.h"
+#include "Material.h"
+#include "Renderer.h"
+#include "ConstantBuffer.h"
+#include "ConstantBuffer.cpp"
 
 class App {
 public:
@@ -20,8 +25,16 @@ public:
 	HINSTANCE hPrevInstance;
 	LPSTR lpCmdLine;
 	int mCmdShow;
+
 	MyWindow* windows;
 	Graphics* graphics;
 	Camera camera;
 	GameTimer timer;
+
+	ConstantBuffer<XMFLOAT4X4>* CBufferPerFrame;
+	ComPtr<ID3DBlob> ByteCodeVS;
+	ComPtr<ID3DBlob> ByteCodePS;
+	Mesh* mesh;
+	Material* mat;
+	Renderer* renderer;
 };

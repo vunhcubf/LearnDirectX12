@@ -52,86 +52,25 @@ public:
 	void FlushCommandQueue();
 
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView()const;
-	D3D12_CPU_DESCRIPTOR_HANDLE FetchIndexedViewCpuHandleFromCBV_SRV_UAVHeap(UINT* Index);
-	D3D12_GPU_DESCRIPTOR_HANDLE FetchIndexedViewGpuHandleFromCBV_SRV_UAVHeap(UINT* Index);
-	D3D12_CPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewCpuHandleFromRTVHeap(UINT* Index);
-	D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromRTVHeap(UINT* Index);
-	D3D12_CPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewCpuHandleFromDSVHeap(UINT* Index);
-	D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromDSVHeap(UINT* Index);
+	D3D12_CPU_DESCRIPTOR_HANDLE FetchIndexedViewCpuHandleFromCBV_SRV_UAVHeap(UINT Index);
+	D3D12_GPU_DESCRIPTOR_HANDLE FetchIndexedViewGpuHandleFromCBV_SRV_UAVHeap(UINT Index);
+	D3D12_CPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewCpuHandleFromRTVHeap(UINT Index);
+	D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromRTVHeap(UINT Index);
+	D3D12_CPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewCpuHandleFromDSVHeap(UINT Index);
+	D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromDSVHeap(UINT Index);
+
+	static D3D12_SHADER_BYTECODE GetShaderByteCodeFromBlob(ID3DBlob* bytecode);
+	static XMFLOAT4X4 MatrixToFloat4x4(XMMATRIX& mat);
+	static XMFLOAT4X4 MatrixToFloat4x4(XMMATRIX&& mat);
 
 	UINT AddViewOnCBVHeap(D3D12_CONSTANT_BUFFER_VIEW_DESC* desc);
+	UINT AddViewOnRTVHeap(D3D12_RENDER_TARGET_VIEW_DESC* desc, ID3D12Resource* resource);
+	UINT AddViewOnDSVHeap(D3D12_DEPTH_STENCIL_VIEW_DESC* desc, ID3D12Resource* resource);
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView()const;
 	ID3D12Resource* CurrentBackBuffer()const;
 	ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData,UINT64 byteSize,ComPtr<ID3D12Resource>& uploadBuffer);
 	ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData, UINT64 byteSize, ID3D12Resource* uploadBuffer);
-	static ComPtr<ID3DBlob> CompileShader(const std::wstring& filename,const D3D_SHADER_MACRO* defines,const std::string& entrypoint,const std::string& target);
-
-	///////////////////////////////////画空白画布////////////////////////////////////
-	void DrawEmpty();
-	////////////////////////////////////////////////////////////////////////////////
-	
-	///////////////////////////////////画方块用到的东西//////////////////////////////
-	void DrawBox();
-	void Update(Camera* camera);
-	void InitBox();
-	void QuitBox();
-	struct Vertex
-	{
-		XMFLOAT3 Pos;
-		XMFLOAT4 Color;
-	};
-	struct ObjectConstants {
-		XMFLOAT4X4 WorldViewProj = XMFLOAT4X4(0,0,0,1 ,0,1,0,0 ,0,0,1,0 ,0,0,0,1);
-	};
-	ComPtr<ID3D12Resource> VertexBufferGpu = nullptr;
-	ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
-	ComPtr<ID3D12Resource> IndexBufferGPU = nullptr;
-	ComPtr<ID3D12Resource> IndexBufferUploader = nullptr;
-	ComPtr<ID3D12Resource> UploadCBuffer = nullptr;
-	ComPtr<ID3D12RootSignature> RootSignature = nullptr;
-	ComPtr<ID3D12PipelineState> PipelineState = nullptr;
-
-	XMMATRIX ProjMatrix;
-	XMMATRIX ViewMatrix;
-
-	D3D12_INPUT_ELEMENT_DESC InputLayout[2];
-	BYTE* CBufferDataPtr;
-	ComPtr<ID3DBlob> ByteCodeVS;
-	ComPtr<ID3DBlob> ByteCodePS;
-	D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
-	D3D12_INDEX_BUFFER_VIEW IndexBufferView;
-
-	Vertex vertices[8] = {
-{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) },
-{ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) },
-{ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) },
-{ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) },
-{ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) },
-{ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) },
-{ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) },
-{ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) }
-};
-	std::uint16_t indices[36] = {
-		// 立方体前表面
-		0, 1, 2,
-		0, 2, 3,
-		// 立方体后表面
-		4, 6, 5,
-		4, 7, 6,
-		// 立方体左表面
-		4, 5, 1,
-		4, 1, 0,
-		// 立方体右表面
-		3, 2, 6,
-		3, 6, 7,
-		// 立方体上表面
-		1, 5, 6,
-		1, 6, 2,
-		// 立方体下表面
-		4, 0, 3,
-		4, 3, 7
-	};
-	///////////////////////////////////////////////////////////////////////////////
+	static ID3DBlob* CompileShader(const std::wstring& filename,const D3D_SHADER_MACRO* defines,const std::string& entrypoint,const std::string& target);
 
 	UINT mRTVDescriptorSize;
 	UINT mDSVDescriptorSize;
@@ -140,6 +79,8 @@ public:
 	static constexpr UINT mBackBufferCount = 2;
 	static constexpr DXGI_FORMAT DefaultDSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	static constexpr DXGI_FORMAT DefaultRTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	XMMATRIX Matrix4x4Identity = XMMATRIX(1,0,0,0	,0,1,0,0	,0,0,1,0	,0,0,0,1);
+	XMFLOAT4X4 Float4x4Identity = XMFLOAT4X4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 	bool IsSupport4xMSAA;
 	UINT m4xMSAAQuality;
 	UINT64 CurrentFence = 0;
@@ -160,13 +101,17 @@ public:
 	ComPtr<ID3D12DescriptorHeap> mDSVHeap;
 	ComPtr<ID3D12DescriptorHeap> CBV_SRV_UAVHeap;
 	UINT CBV_SRV_UAVHeap_StackPtr = 0;
+	UINT RTVHeap_StackPtr = 0;
+	UINT DSVHeap_StackPtr = 0;
 
 	ComPtr<ID3D12Fence> pIFence;
 	D3D12_VIEWPORT pViewPort;
 	RECT pRECT;
 
 	ComPtr<ID3D12Resource> mSwapChainBuffer[mBackBufferCount];
+	UINT mSwapChainBufferIndex[mBackBufferCount];
 	ComPtr<ID3D12Resource> mDepthStencilBuffer;
+	UINT mDepthStencilBufferIndex;
 
 	ComPtr<IDXGISwapChain> pIDXGISwapChain;
 #if defined(DEBUG) || defined(_DEBUG)
