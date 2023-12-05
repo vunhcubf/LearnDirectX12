@@ -23,6 +23,7 @@ void App::Quit() {
 	delete mat;
 	delete CBufferPerFrame;
 	delete renderer;
+	delete chicken;
 }
 void App::Initlize() {
 	eventManager = new WindowsEventManager();
@@ -51,16 +52,19 @@ void App::Initlize() {
 	
 	mesh->InitializeAndUploadMesh(graphics, true);
 	CBufferPerFrame = new ConstantBuffer<XMFLOAT4X4>(graphics);
+	chicken = new Texture(L"D:\\LearnDirectX12\\LearnDirectX12\\Textures\\chicken.dds",graphics);
 }
 void App::DoFrame() {
 	//更新相机的VP矩阵
 	camera.OnUpdate((int)timer.mDeltaTime.count());
 	camera.CalcCameraVPMatrix();
 	CBufferPerFrame->CopyData(Graphics::MatrixToFloat4x4(XMMatrixTranspose(camera.CameraVPMatrix)));
+	mesh->ResetCBufferData(&Mesh::CBufferPerObject(Graphics::RotateMatrixX(timer.mTotalTime.count()*0.001), XMFLOAT4(0, 0, 0, 0)));
 
 	renderer->SetRenderTarget(graphics->mSwapChainBufferIndex[graphics->CurrentBackBufferIndex], graphics->mDepthStencilBufferIndex, graphics->mSwapChainBuffer[graphics->CurrentBackBufferIndex].Get(), graphics->mDepthStencilBuffer.Get());
 	renderer->ClearRenderTarget();
 
+	mat->SetTexture(chicken);
 	mat->SetConstantBuffer(mesh->GetCBufferPerObjViewIndex(), mesh->GetCBufferPerObjectForUploadPtr());
 	mat->SetConstantBuffer(CBufferPerFrame);
 

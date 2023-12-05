@@ -3,7 +3,13 @@
 //
 // Transforms and colors geometry.
 //***************************************************************************************
-
+Texture2D chicken:register(t0);
+SamplerState gsamPointWrap    : register(s0);
+SamplerState gsamPointClamp    : register(s1);
+SamplerState gsamLinearWrap    : register(s2);
+SamplerState gsamLinearClamp   : register(s3);
+SamplerState gsamAnisotropicWrap : register(s4);
+SamplerState gsamAnisotropicClamp : register(s5);
 cbuffer cbPerObject : register(b0)
 {
 	float4x4 ObjToWorldMatrix;
@@ -46,7 +52,8 @@ VertexOut VS(VertexIn vin)
 
 float4 PS(VertexOut pin) : SV_Target
 {
-    return float4(pin.uv.xy,0,0);
+	float4 color=chicken.Sample(gsamAnisotropicWrap,pin.uv);
+    return color;
 }
 
 

@@ -32,6 +32,12 @@ void Material::SetTexture(UINT ViewIndexOfTextures)
 	this->ViewIndexOfTextures.push_back(ViewIndexOfTextures);
 }
 
+void Material::SetTexture(Texture* texture)
+{
+	slotRootParameterCount++;
+	this->ViewIndexOfTextures.push_back(texture->TextureViewIndex);
+}
+
 void Material::SetConstantBuffer(UINT CBufferViewIndex, ID3D12Resource* CBufferResource)
 {
 	slotRootParameterCount++;
@@ -58,7 +64,7 @@ void Material::CreateRootSignature(Graphics* graphics)
 		index++;
 	}
 	//创建根签名
-	CD3DX12_ROOT_SIGNATURE_DESC rootsigDesc = CD3DX12_ROOT_SIGNATURE_DESC(slotRootParameterCount, slotRootParameters.data(), 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	CD3DX12_ROOT_SIGNATURE_DESC rootsigDesc = CD3DX12_ROOT_SIGNATURE_DESC(slotRootParameterCount, slotRootParameters.data(), (UINT)StaticSamplers.size(), StaticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 	ID3D10Blob* serializedRootSig = nullptr;
 	ID3D10Blob* errorBlob = nullptr;
 	THROW_IF_ERROR(D3D12SerializeRootSignature(&rootsigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &serializedRootSig, &errorBlob));

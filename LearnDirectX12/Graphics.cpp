@@ -196,9 +196,20 @@ XMFLOAT4X4 Graphics::MatrixToFloat4x4(XMMATRIX&& mat)
 	return temp;
 }
 
+XMFLOAT4X4 Graphics::RotateMatrixX(double angle)
+{
+	return XMFLOAT4X4(1,0,0,0,	0,cos(angle),-sin(angle),0,	0,sin(angle),cos(angle),0	,0,0,0,1);
+}
+
 UINT Graphics::AddViewOnCBVHeap(D3D12_CONSTANT_BUFFER_VIEW_DESC* desc)
 {
 	pID3DDevice->CreateConstantBufferView(desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(CBV_SRV_UAVHeap->GetCPUDescriptorHandleForHeapStart(), CBV_SRV_UAVHeap_StackPtr, this->mCBVUAVDescriptorSize));
+	CBV_SRV_UAVHeap_StackPtr++;
+	return CBV_SRV_UAVHeap_StackPtr - 1;
+}
+UINT Graphics::AddViewOnSRVHeap(D3D12_SHADER_RESOURCE_VIEW_DESC* desc,ID3D12Resource* resource)
+{
+	pID3DDevice->CreateShaderResourceView(resource, desc, CD3DX12_CPU_DESCRIPTOR_HANDLE(CBV_SRV_UAVHeap->GetCPUDescriptorHandleForHeapStart(), CBV_SRV_UAVHeap_StackPtr, this->mCBVUAVDescriptorSize));
 	CBV_SRV_UAVHeap_StackPtr++;
 	return CBV_SRV_UAVHeap_StackPtr - 1;
 }

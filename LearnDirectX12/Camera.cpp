@@ -117,6 +117,17 @@ void Camera::On_RBUTTONUP(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) { I
 
 void Camera::On_MOUSEMOVE(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	RECT clientRect;
+	GetClientRect(hWnd,&clientRect);
+	POINT mousePos;
+	GetCursorPos(&mousePos);
+	ScreenToClient(hWnd, &mousePos);
+	bool isMouseInside = PtInRect(&clientRect, mousePos);
+	if (!isMouseInside) {
+		IsRButtonDown = false;
+		return;
+	}
+
 	const POINTS pt = MAKEPOINTS(lParam);
 	int x = pt.x;
 	int y = pt.y;

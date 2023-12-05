@@ -62,8 +62,10 @@ public:
 	static D3D12_SHADER_BYTECODE GetShaderByteCodeFromBlob(ID3DBlob* bytecode);
 	static XMFLOAT4X4 MatrixToFloat4x4(XMMATRIX& mat);
 	static XMFLOAT4X4 MatrixToFloat4x4(XMMATRIX&& mat);
+	static XMFLOAT4X4 RotateMatrixX(double angle);
 
 	UINT AddViewOnCBVHeap(D3D12_CONSTANT_BUFFER_VIEW_DESC* desc);
+	UINT AddViewOnSRVHeap(D3D12_SHADER_RESOURCE_VIEW_DESC* desc, ID3D12Resource* resource);
 	UINT AddViewOnRTVHeap(D3D12_RENDER_TARGET_VIEW_DESC* desc, ID3D12Resource* resource);
 	UINT AddViewOnDSVHeap(D3D12_DEPTH_STENCIL_VIEW_DESC* desc, ID3D12Resource* resource);
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView()const;

@@ -126,9 +126,6 @@ LRESULT CALLBACK MyWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 		eventManager->TriggerEvents_RBUTTONUP(hWnd, msg, wParam, lParam);
 		break;
 	case WM_MOUSEMOVE: 
-		//RECT rect;
-		//GetWindowRect(hWnd, &rect);
-		//ClipCursor(&rect);
 		eventManager->TriggerEvents_MOUSEMOVE(hWnd, msg, wParam, lParam);
 		break;
 	}

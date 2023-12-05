@@ -2,6 +2,7 @@
 #include "Graphics.h"
 #include "Mesh.h"
 #include "ConstantBuffer.h"
+#include "Texture.h"
 #include <bitset>
 
 class Material {
@@ -22,7 +23,49 @@ private:
 	std::vector<CD3DX12_ROOT_PARAMETER> slotRootParameters;
 	std::vector<UINT> ViewIndexOfTextures;
 	std::vector<std::pair<D3D12_GPU_VIRTUAL_ADDRESS, UINT>> ConstantBuffersData;
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> StaticSamplers = { 
+		CD3DX12_STATIC_SAMPLER_DESC(
+			0, // shaderRegister
+			D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP),
 
+		CD3DX12_STATIC_SAMPLER_DESC(
+			1, // shaderRegister
+			D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP),
+
+		CD3DX12_STATIC_SAMPLER_DESC(
+			2, // shaderRegister
+			D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP),
+
+		CD3DX12_STATIC_SAMPLER_DESC(
+			3, // shaderRegister
+			D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP),
+
+		CD3DX12_STATIC_SAMPLER_DESC(
+			4, // shaderRegister
+			D3D12_FILTER_ANISOTROPIC, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP),
+
+		CD3DX12_STATIC_SAMPLER_DESC(
+			5, // shaderRegister
+			D3D12_FILTER_ANISOTROPIC, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP),
+	};
 public:
 	Material(D3D12_SHADER_BYTECODE ByteCodeVS,
 		D3D12_SHADER_BYTECODE ByteCodePS,
@@ -53,6 +96,7 @@ public:
 	void RefreshMaterial(Graphics* graphics);
 
 	void SetTexture(UINT ViewIndexOfTextures);
+	void SetTexture(Texture* texture);
 	void SetConstantBuffer(UINT CBufferViewIndex, ID3D12Resource* CBufferResource);
 
 	template<typename T>

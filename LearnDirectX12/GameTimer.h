@@ -10,6 +10,7 @@ public:
     void DisplayFps(MyWindow* Wnd);
     void SetPrevTime();
 
+    std::chrono::milliseconds mTotalTime = std::chrono::duration<long long, std::milli>(0);
     std::chrono::milliseconds mDeltaTime= std::chrono::duration<long long, std::milli>(0);
     std::chrono::steady_clock::time_point mCurTime= std::chrono::steady_clock::now();;
     std::chrono::steady_clock::time_point mPrevTime= std::chrono::steady_clock::now();;

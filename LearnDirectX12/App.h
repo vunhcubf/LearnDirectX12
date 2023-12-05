@@ -30,6 +30,7 @@ public:
 	Graphics* graphics;
 	Camera camera;
 	GameTimer timer;
+	Texture* chicken;
 
 	ConstantBuffer<XMFLOAT4X4>* CBufferPerFrame;
 	ComPtr<ID3DBlob> ByteCodeVS;
