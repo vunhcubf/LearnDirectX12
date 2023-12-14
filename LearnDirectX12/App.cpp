@@ -70,21 +70,37 @@ void App::Initlize() {
 	resources1.AddFloat4(XMFLOAT4(1, 0, 1, 1));
 	resources1.AddFloat4(XMFLOAT4(1, 1, 0, 1));
 	resources1.AddFloat4(XMFLOAT4(0.5, 0.5, 0.5, 0.5));
-	MaterialCollection[L"方块"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources1, 1);
+	MaterialCollection[L"cornel_outer"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources1, 1);
 	MaterialResources resources2;
 	resources2.AddTexture(TextureCollection[L"默认"]);
 	resources2.AddFloat4(XMFLOAT4(1, 0, 1, 1));
 	resources2.AddFloat4(XMFLOAT4(0, 0, 1, 1));
 	resources2.AddFloat4(XMFLOAT4(0.5, 0.5, 0.5, 0.5));
-	MaterialCollection[L"球"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources2, 1);
+	MaterialCollection[L"cornel_sphere"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources2, 1);
+	MaterialResources resources3;
+	resources3.AddTexture(TextureCollection[L"默认"]);
+	resources3.AddFloat4(XMFLOAT4(1, 0, 1, 1));
+	resources3.AddFloat4(XMFLOAT4(0, 1, 0, 1));
+	resources3.AddFloat4(XMFLOAT4(0.5, 0.5, 0.5, 0.5));
+	MaterialCollection[L"cornel_monkey"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources3, 1);
+	MaterialResources resources4;
+	resources4.AddTexture(TextureCollection[L"默认"]);
+	resources4.AddFloat4(XMFLOAT4(1, 0, 1, 1));
+	resources4.AddFloat4(XMFLOAT4(1, 0, 0, 1));
+	resources4.AddFloat4(XMFLOAT4(0.5, 0.5, 0.5, 0.5));
+	MaterialCollection[L"cornel_box"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources4, 1);
 
 	//生成所有的网格
-	MeshCollection[L"方块"] = new Mesh(graphics, &Mesh::CBufferPerObject(Graphics::MatrixToFloat4x4(XMMatrixTranspose(XMMATRIX(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1))), XMFLOAT4(0, 0, 0, 0)), true);
-	MeshCollection[L"球"] = new Mesh(graphics, &Mesh::CBufferPerObject(graphics->Float4x4Identity, XMFLOAT4(0, 0, 0, 0)), L"D:\\LearnDirectX12\\LearnDirectX12\\Models\\sphere.obj");
+	MeshCollection[L"cornel_sphere"] = new Mesh(graphics, &Mesh::CBufferPerObject(graphics->Float4x4Identity, XMFLOAT4(0, 0, 0, 0)), L"D:\\LearnDirectX12\\LearnDirectX12\\Models\\cornel_sphere.obj");
+	MeshCollection[L"cornel_outer"] = new Mesh(graphics, &Mesh::CBufferPerObject(graphics->Float4x4Identity, XMFLOAT4(0, 0, 0, 0)), L"D:\\LearnDirectX12\\LearnDirectX12\\Models\\cornel_outer.obj");
+	MeshCollection[L"cornel_monkey"] = new Mesh(graphics, &Mesh::CBufferPerObject(graphics->Float4x4Identity, XMFLOAT4(0, 0, 0, 0)), L"D:\\LearnDirectX12\\LearnDirectX12\\Models\\cornel_monkey.obj");
+	MeshCollection[L"cornel_box"] = new Mesh(graphics, &Mesh::CBufferPerObject(graphics->Float4x4Identity, XMFLOAT4(0, 0, 0, 0)), L"D:\\LearnDirectX12\\LearnDirectX12\\Models\\cornel_box.obj");
 
 	//生成所有的物体
-	ObjectCollection[L"方块"] = new Object(MeshCollection[L"方块"], MaterialCollection[L"方块"], CBufferPerFrame);
-	ObjectCollection[L"球"] = new Object(MeshCollection[L"球"], MaterialCollection[L"球"], CBufferPerFrame);
+	ObjectCollection[L"cornel_outer"] = new Object(MeshCollection[L"cornel_outer"], MaterialCollection[L"cornel_outer"], CBufferPerFrame);
+	ObjectCollection[L"cornel_sphere"] = new Object(MeshCollection[L"cornel_sphere"], MaterialCollection[L"cornel_sphere"], CBufferPerFrame);
+	ObjectCollection[L"cornel_monkey"] = new Object(MeshCollection[L"cornel_monkey"], MaterialCollection[L"cornel_monkey"], CBufferPerFrame);
+	ObjectCollection[L"cornel_box"] = new Object(MeshCollection[L"cornel_box"], MaterialCollection[L"cornel_box"], CBufferPerFrame);
 	MyWindow::ShowForm(windows);
 }
 void App::DoFrame() {
