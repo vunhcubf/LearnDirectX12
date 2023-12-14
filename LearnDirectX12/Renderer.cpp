@@ -48,6 +48,50 @@ void Renderer::DrawMesh(Material* mat, Mesh* mesh)
 	graphics->pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ColorResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	WillClearRenderTarget = false;
 }
+void Renderer::DrawRenderer(std::unordered_map<std::wstring, Object*> objs)
+{
+	SetRenderTarget(graphics->mSwapChainBufferIndex[graphics->CurrentBackBufferIndex], graphics->mDepthStencilBufferIndex, graphics->mSwapChainBuffer[graphics->CurrentBackBufferIndex].Get(), graphics->mDepthStencilBuffer.Get());
+	//将渲染目标设置为目标状态
+	graphics->pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ColorResource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	graphics->pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(DepthStencilResource, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+	//清空渲染目标和深度模板缓冲
+	graphics->pCommandList->ClearRenderTargetView(graphics->FetchIndexedViewCpuHandleFromRTVHeap(CameraColorTargetIndex), Colors::LightSteelBlue, 0, nullptr);
+	graphics->pCommandList->ClearDepthStencilView(graphics->FetchIndexedViewCpuHandleFromDSVHeap(CameraDepthStencilTargetIndex), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+	for (const auto& obj:objs) {
+		for (const auto& it : obj.second->material->TextureResources) {
+			obj.second->material->SetTexture(it);
+		}
+		obj.second->material->SetConstantBuffer(obj.second->mesh->GetCBufferPerObjPtr());
+		obj.second->material->SetConstantBuffer(obj.second->cbufferPerFrame);
+		obj.second->material->SetConstantBuffer(obj.second->cbufferPerMaterial);
+		obj.second->material->RefreshMaterial(graphics);
+		
+		//设置渲染目标
+		graphics->pCommandList->OMSetRenderTargets(1, &graphics->FetchIndexedViewCpuHandleFromRTVHeap(CameraColorTargetIndex), true, &graphics->FetchIndexedViewCpuHandleFromDSVHeap(CameraDepthStencilTargetIndex));
+		//设置常量缓冲描述符堆
+		ID3D12DescriptorHeap* descriptorHeaps[] = { graphics->CBV_SRV_UAVHeap.Get() };
+		graphics->pCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		//设置根签名
+		graphics->pCommandList->SetGraphicsRootSignature(obj.second->material->GetRootSignaturePtr());
+		//绑定顶点和索引缓冲
+		graphics->pCommandList->IASetVertexBuffers(0, 1, obj.second->mesh->GetVertexBufferViewPtr());
+		graphics->pCommandList->IASetPrimitiveTopology(obj.second->mesh->GetPrimitiveTopology());
+		graphics->pCommandList->IASetIndexBuffer(obj.second->mesh->GetIndexBufferViewPtr());
+		//设置根签名对应的资源
+		obj.second->material->BindRootSignatureResource(graphics);
+		graphics->pCommandList->SetPipelineState(obj.second->material->GetPipelineStatePtr());
+		//每次渲染之前都要手动设置视口
+		graphics->pCommandList->RSSetScissorRects(1, &graphics->pRECT);
+		graphics->pCommandList->RSSetViewports(1, &graphics->pViewPort);
+		//绘制
+		graphics->pCommandList->DrawIndexedInstanced(obj.second->mesh->GetIndicesCount(), 1, 0, 0, 0);
+		//渲染目标转换为呈现状态
+	}
+	graphics->pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(DepthStencilResource, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_COMMON));
+	graphics->pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ColorResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	ExcuteCommandList();
+	ClearCommandList();
+}
 void Renderer::WaitGpu()
 {
 	graphics->FlushCommandQueue();
@@ -55,8 +99,12 @@ void Renderer::WaitGpu()
 
 void Renderer::ClearCommandList()
 {
-	THROW_IF_ERROR(graphics->pDirectCmdListAlloc->Reset());
 	THROW_IF_ERROR(graphics->pCommandList->Reset(graphics->pDirectCmdListAlloc.Get(), nullptr));
+}
+
+void Renderer::ClearCommandAllocater()
+{
+	THROW_IF_ERROR(graphics->pDirectCmdListAlloc->Reset());
 }
 
 void Renderer::RefreshSwapChain()
@@ -66,7 +114,6 @@ void Renderer::RefreshSwapChain()
 }
 void Renderer::ExcuteCommandList()
 {
-	//提交命令，翻转交换链，清空队列
 	THROW_IF_ERROR(graphics->pCommandList->Close());
 	ID3D12CommandList* cmdsLists[] = { graphics->pCommandList.Get() };
 	graphics->pCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);

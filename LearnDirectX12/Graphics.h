@@ -3,6 +3,7 @@
 #include <dxgi.h>
 #include "Camera.h"
 #include <SDKDDKVer.h>
+#include "Console.h"
 #define WIN32_LEAN_AND_MEAN // 从 Windows 头中排除极少使用的资料
 #include <windows.h>
 #include <tchar.h>
@@ -33,7 +34,7 @@ using namespace DirectX;
 
 class Graphics {
 public:
-	Graphics(MyWindow* Wnd);
+	Graphics(MyWindow* Wnd, Console* StatusConsole);
 	~Graphics() {
 		if (pID3DDevice != nullptr) { FlushCommandQueue(); }
 	}
@@ -59,6 +60,9 @@ public:
 	D3D12_CPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewCpuHandleFromDSVHeap(UINT Index);
 	D3D12_GPU_DESCRIPTOR_HANDLE Graphics::FetchIndexedViewGpuHandleFromDSVHeap(UINT Index);
 
+	//输出状态的命令行
+	Console* StatusConsole;
+
 	static D3D12_SHADER_BYTECODE GetShaderByteCodeFromBlob(ID3DBlob* bytecode);
 	static XMFLOAT4X4 MatrixToFloat4x4(XMMATRIX& mat);
 	static XMFLOAT4X4 MatrixToFloat4x4(XMMATRIX&& mat);
@@ -72,7 +76,7 @@ public:
 	ID3D12Resource* CurrentBackBuffer()const;
 	ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData,UINT64 byteSize,ComPtr<ID3D12Resource>& uploadBuffer);
 	ComPtr<ID3D12Resource> CreateDefaultBuffer(const void* initData, UINT64 byteSize, ID3D12Resource* uploadBuffer);
-	static ID3DBlob* CompileShader(const std::wstring& filename,const D3D_SHADER_MACRO* defines,const std::string& entrypoint,const std::string& target);
+	ID3DBlob* CompileShader(bool* IsAnyError,const std::wstring& filename,const D3D_SHADER_MACRO* defines,const std::string& entrypoint,const std::string& target);
 
 	UINT mRTVDescriptorSize;
 	UINT mDSVDescriptorSize;

@@ -92,3 +92,117 @@ void Material::BindRootSignatureResource(Graphics* graphics)
 	slotRootParameterCount = 0;
 }
 
+void MaterialResources::AddTexture(Texture* texture)
+{
+	this->TextureResourcesCollection.push_back(texture);
+}
+
+void MaterialResources::AddTextures(std::vector<Texture*> textures)
+{
+	this->TextureResourcesCollection.insert(TextureResourcesCollection.end(), textures.begin(), textures.end());
+}
+
+void MaterialResources::AddFloat(float in)
+{
+	UINT copysize = 4;
+	if (cbufferData!=nullptr) {
+		//先把数据放到临时位置
+		BYTE* Temp = (BYTE*)malloc(cbufferSize);
+		memcpy(Temp, cbufferData, cbufferSize);
+		cbufferSize += copysize;
+		free(cbufferData);
+		cbufferData = (BYTE*)malloc(cbufferSize);
+		memcpy(cbufferData,Temp, cbufferSize- copysize);
+		memcpy(cbufferData+cbufferSize - copysize, &in, copysize);
+		free(Temp);
+	}
+	else {
+		cbufferData = (BYTE*)malloc(copysize);
+		memcpy(cbufferData, &in, copysize);
+		cbufferSize = copysize;
+	}
+}
+
+void MaterialResources::AddFloat2(XMFLOAT2 in)
+{
+	UINT copysize = 4*2;
+	if (cbufferData != nullptr) {
+		//先把数据放到临时位置
+		BYTE* Temp = (BYTE*)malloc(cbufferSize);
+		memcpy(Temp, cbufferData, cbufferSize);
+		cbufferSize += copysize;
+		free(cbufferData);
+		cbufferData = (BYTE*)malloc(cbufferSize);
+		memcpy(cbufferData, Temp, cbufferSize - copysize);
+		memcpy(cbufferData+cbufferSize - copysize, &in, copysize);
+		free(Temp);
+	}
+	else {
+		cbufferData = (BYTE*)malloc(copysize);
+		memcpy(cbufferData, &in, copysize);
+		cbufferSize = copysize;
+	}
+}
+
+void MaterialResources::AddFloat3(XMFLOAT3 in)
+{
+	UINT copysize = 4 * 3;
+	if (cbufferData != nullptr) {
+		//先把数据放到临时位置
+		BYTE* Temp = (BYTE*)malloc(cbufferSize);
+		memcpy(Temp, cbufferData, cbufferSize);
+		cbufferSize += copysize;
+		free(cbufferData);
+		cbufferData = (BYTE*)malloc(cbufferSize);
+		memcpy(cbufferData, Temp, cbufferSize - copysize);
+		memcpy(cbufferData+cbufferSize - copysize, &in, copysize);
+		free(Temp);
+	}
+	else {
+		cbufferData = (BYTE*)malloc(copysize);
+		memcpy(cbufferData, &in, copysize);
+		cbufferSize = copysize;
+	}
+}
+
+void MaterialResources::AddFloat4(XMFLOAT4 in)
+{
+	UINT copysize = 4 * 4;
+	if (cbufferData != nullptr) {
+		//先把数据放到临时位置
+		BYTE* Temp = (BYTE*)malloc(cbufferSize);
+		memcpy(Temp, cbufferData, cbufferSize);
+		cbufferSize += copysize;
+		free(cbufferData);
+		cbufferData = (BYTE*)malloc(cbufferSize);
+		memcpy(cbufferData, Temp, cbufferSize - copysize);
+		memcpy(cbufferData+cbufferSize - copysize, &in, copysize);
+		free(Temp);
+	}
+	else {
+		cbufferData = (BYTE*)malloc(copysize);
+		memcpy(cbufferData, &in, copysize);
+		cbufferSize = copysize;
+	}
+}
+
+void MaterialResources::AddFloat4x4(XMFLOAT4 in)
+{
+	UINT copysize = 4 * 16;
+	if (cbufferData != nullptr) {
+		//先把数据放到临时位置
+		BYTE* Temp = (BYTE*)malloc(cbufferSize);
+		memcpy(Temp, cbufferData, cbufferSize);
+		cbufferSize += copysize;
+		free(cbufferData);
+		cbufferData = (BYTE*)malloc(cbufferSize);
+		memcpy(cbufferData, Temp, cbufferSize - copysize);
+		memcpy(cbufferData+cbufferSize - copysize, &in, copysize);
+		free(Temp);
+	}
+	else {
+		cbufferData = (BYTE*)malloc(copysize);
+		memcpy(cbufferData, &in, copysize);
+		cbufferSize = copysize;
+	}
+}

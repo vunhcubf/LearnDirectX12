@@ -125,7 +125,6 @@ void Camera::On_MOUSEMOVE(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	bool isMouseInside = PtInRect(&clientRect, mousePos);
 	if (!isMouseInside) {
 		IsRButtonDown = false;
-		return;
 	}
 
 	const POINTS pt = MAKEPOINTS(lParam);
@@ -146,6 +145,6 @@ void Camera::On_MOUSEMOVE(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	if (!IsRButtonDown) { return; }
 	mTheta -= dx * 0.2 / Deg2Rad;
 	mPhi -= dy * 0.2 / Deg2Rad;
-	mPhi = mPhi > 3.14159265358979f * 2.0f ? mPhi - 3.14159265358979f * 2.0f : mPhi;
+	mPhi = max(min(mPhi, 3.14159265358979f*0.95f), 3.14159265358979f * 0.05f);
 	mTheta = mTheta > 3.14159265358979f * 2.0f ? mTheta - 3.14159265358979f * 2.0f : mTheta;
 }

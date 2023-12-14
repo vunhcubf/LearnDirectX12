@@ -19,11 +19,17 @@ void App::Quit() {
 	delete eventManager;
 
 	delete graphics;
-	delete mesh;
-	delete mat;
 	delete CBufferPerFrame;
 	delete renderer;
-	delete chicken;
+
+	for (auto it = MeshCollection.begin(); it != MeshCollection.end(); it++) {
+		delete it->second;
+	}
+	for (auto it = MaterialCollection.begin(); it != MaterialCollection.end(); it++) {
+		delete it->second;
+	}
+	MeshCollection.clear();
+	MaterialCollection.clear();
 }
 void App::Initlize() {
 	eventManager = new WindowsEventManager();
@@ -37,37 +43,58 @@ void App::Initlize() {
 	windows->GetWindowEventHandlePtr()->RegisterEvent(EventType::RBUTTONDOWN, (void*)&camera, Camera::InvokeEvent_RBUTTONDOWN);
 	windows->GetWindowEventHandlePtr()->RegisterEvent(EventType::RBUTTONUP, (void*)&camera, Camera::InvokeEvent_RBUTTONUP);
 	windows->GetWindowEventHandlePtr()->RegisterEvent(EventType::MOUSEMOVE, (void*)&camera, Camera::InvokeEvent_MOUSEMOVE);
-
-	ByteCodeVS = Graphics::CompileShader(L"D:\\LearnDirectX12\\LearnDirectX12\\Shaders\\DrawCube.hlsl", nullptr, "VS", "vs_5_0");
-	ByteCodePS = Graphics::CompileShader(L"D:\\LearnDirectX12\\LearnDirectX12\\Shaders\\DrawCube.hlsl", nullptr, "PS", "ps_5_0");
-
-	MyWindow::ShowForm(windows);
-
-	graphics = new Graphics(windows);
+	StatusConsole.PrintLine(L"注册活动相机事件\n");
+	graphics = new Graphics(windows, &StatusConsole);
 	renderer = new Renderer(graphics);
 
-	mesh = new Mesh(graphics, &Mesh::CBufferPerObject(graphics->Float4x4Identity, XMFLOAT4(0,0,0,0)));
-
-	mat = new Material(Graphics::GetShaderByteCodeFromBlob(ByteCodeVS.Get()), Graphics::GetShaderByteCodeFromBlob(ByteCodePS.Get()), 1);
-	
-	mesh->InitializeAndUploadMesh(graphics, true);
+	//遍历shader文件夹中的所有文件
+	std::filesystem::path directoryPath(L"D:\\LearnDirectX12\\LearnDirectX12\\Shaders");
+	bool IsAnyError = false;
+	if (std::filesystem::exists(directoryPath) && std::filesystem::is_directory(directoryPath)) {
+		for (const auto& entry : std::filesystem::directory_iterator(directoryPath)) {
+			std::wstring path = entry.path().wstring();
+			std::wstring filename = entry.path().filename().wstring();
+			ShaderVSCollection.insert({ filename, graphics->CompileShader(&IsAnyError,path, nullptr, "VS", "vs_5_0") });
+			ShaderPSCollection.insert({ filename, graphics->CompileShader(&IsAnyError,path, nullptr, "PS", "ps_5_0") });
+		}
+	}
+	if (IsAnyError) { Sleep(INFINITE); }
+	//导入材质
+	TextureCollection[L"默认"] = new Texture(L"D:\\LearnDirectX12\\LearnDirectX12\\Textures\\chicken.dds", graphics);
+	StatusConsole.PrintLine(std::wstring(L"导入了贴图资源:")+std::wstring(L"D:\\LearnDirectX12\\LearnDirectX12\\Textures\\chicken.dds"+std::wstring(L"\n")));
+	//生成逐帧的Cbuffer
 	CBufferPerFrame = new ConstantBuffer<XMFLOAT4X4>(graphics);
-	chicken = new Texture(L"D:\\LearnDirectX12\\LearnDirectX12\\Textures\\chicken.dds",graphics);
+	//生成所有的材质
+	MaterialResources resources1;
+	resources1.AddTexture(TextureCollection[L"默认"]);
+	resources1.AddFloat4(XMFLOAT4(1, 0, 1, 1));
+	resources1.AddFloat4(XMFLOAT4(1, 1, 0, 1));
+	resources1.AddFloat4(XMFLOAT4(0.5, 0.5, 0.5, 0.5));
+	MaterialCollection[L"方块"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources1, 1);
+	MaterialResources resources2;
+	resources2.AddTexture(TextureCollection[L"默认"]);
+	resources2.AddFloat4(XMFLOAT4(1, 0, 1, 1));
+	resources2.AddFloat4(XMFLOAT4(0, 0, 1, 1));
+	resources2.AddFloat4(XMFLOAT4(0.5, 0.5, 0.5, 0.5));
+	MaterialCollection[L"球"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources2, 1);
+
+	//生成所有的网格
+	MeshCollection[L"方块"] = new Mesh(graphics, &Mesh::CBufferPerObject(Graphics::MatrixToFloat4x4(XMMatrixTranspose(XMMATRIX(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1))), XMFLOAT4(0, 0, 0, 0)), true);
+	MeshCollection[L"球"] = new Mesh(graphics, &Mesh::CBufferPerObject(graphics->Float4x4Identity, XMFLOAT4(0, 0, 0, 0)), L"D:\\LearnDirectX12\\LearnDirectX12\\Models\\sphere.obj");
+
+	//生成所有的物体
+	ObjectCollection[L"方块"] = new Object(MeshCollection[L"方块"], MaterialCollection[L"方块"], CBufferPerFrame);
+	ObjectCollection[L"球"] = new Object(MeshCollection[L"球"], MaterialCollection[L"球"], CBufferPerFrame);
+	MyWindow::ShowForm(windows);
 }
 void App::DoFrame() {
 	//更新相机的VP矩阵
 	camera.OnUpdate((int)timer.mDeltaTime.count());
 	camera.CalcCameraVPMatrix();
-	CBufferPerFrame->CopyData(Graphics::MatrixToFloat4x4(XMMatrixTranspose(camera.CameraVPMatrix)));
-	mesh->ResetCBufferData(&Mesh::CBufferPerObject(Graphics::RotateMatrixX(timer.mTotalTime.count()*0.001), XMFLOAT4(0, 0, 0, 0)));
-
-	renderer->SetRenderTarget(graphics->mSwapChainBufferIndex[graphics->CurrentBackBufferIndex], graphics->mDepthStencilBufferIndex, graphics->mSwapChainBuffer[graphics->CurrentBackBufferIndex].Get(), graphics->mDepthStencilBuffer.Get());
 	renderer->ClearRenderTarget();
+	CBufferPerFrame->CopyData(Graphics::MatrixToFloat4x4(XMMatrixTranspose(camera.CameraVPMatrix)));
 
-	mat->SetTexture(chicken);
-	mat->SetConstantBuffer(mesh->GetCBufferPerObjViewIndex(), mesh->GetCBufferPerObjectForUploadPtr());
-	mat->SetConstantBuffer(CBufferPerFrame);
-
-	renderer->DrawMesh(mat,mesh);
-	renderer->ExcuteCommandListWithBlockWithResetSwapChain();
+	renderer->DrawRenderer(ObjectCollection);
+	renderer->WaitGpu();
+	renderer->RefreshSwapChain();
 }

@@ -19,7 +19,6 @@ public:
         D3D12_RAYTRACING_ACCELERATION_STRUCTURE_SRV RaytracingAccelerationStructure;
     };
 	UINT TextureViewIndex;
-    std::wstring Name;
 	ComPtr<ID3D12Resource> TextueResource=nullptr;
     ComPtr<ID3D12Resource> UploadBuffer=nullptr;
 	Texture(D3D12_SHADER_RESOURCE_VIEW_DESC* descriptor, CD3DX12_RESOURCE_DESC textureDesc, Graphics* graphics);

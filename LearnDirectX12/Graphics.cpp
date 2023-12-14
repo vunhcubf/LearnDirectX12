@@ -278,7 +278,7 @@ ComPtr<ID3D12Resource> Graphics::CreateDefaultBuffer(const void* initData, UINT6
 	return defaultBuffer;
 }
 
-ID3DBlob* Graphics::CompileShader(const std::wstring& filename, const D3D_SHADER_MACRO* defines, const std::string& entrypoint, const std::string& target)
+ID3DBlob* Graphics::CompileShader(bool* IsAnyError, const std::wstring& filename, const D3D_SHADER_MACRO* defines, const std::string& entrypoint, const std::string& target)
 {
 	UINT compileFlags = 0;
 #if defined(DEBUG) |defined(_DEBUG)
@@ -286,18 +286,20 @@ ID3DBlob* Graphics::CompileShader(const std::wstring& filename, const D3D_SHADER
 #endif
 	ID3DBlob* byteCode = nullptr;
 	ID3DBlob* errors = nullptr;
-	THROW_IF_ERROR(D3DCompileFromFile(filename.c_str(), defines, D3D_COMPILE_STANDARD_FILE_INCLUDE, entrypoint.c_str(), target.c_str(), compileFlags, 0, &byteCode, &errors));
-	if (errors != nullptr) { OutputDebugStringA((char*)errors->GetBufferPointer()); }
-	//ID3DBlob* bytecode_output = (ID3DBlob*)malloc(byteCode->GetBufferSize());
-	//memcpy(bytecode_output, byteCode, byteCode->GetBufferSize());
+	HRESULT hr=D3DCompileFromFile(filename.c_str(), defines, D3D_COMPILE_STANDARD_FILE_INCLUDE, entrypoint.c_str(), target.c_str(), compileFlags, 0, &byteCode, &errors);
+	if (errors != nullptr) {
+		const char* error_text = (char*)(errors->GetBufferPointer());
+		this->StatusConsole->PrintLineA(error_text);
+		*IsAnyError = true;
+	}
 	return byteCode;
 }
 
-Graphics::Graphics(MyWindow* Wnd) {
+Graphics::Graphics(MyWindow* Wnd, Console* StatusConsole) {
 	this->hWnd = Wnd->hWnd;
 	this->Height = Wnd->Height;
 	this->Width = Wnd->Width;
-
+	this->StatusConsole = StatusConsole;
 	CreateDebugLayer();
 	CreateDXGIFactory();
 	CreateDevice();

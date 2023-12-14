@@ -18,6 +18,11 @@ cbuffer cbPerObject : register(b0)
 cbuffer cbPerFrame:register(b1){
 	float4x4 gWorldViewProj;
 };
+cbuffer cbPerMaterial:register(b2){
+	float3 color1;
+	float3 color2;
+	float4 color3;
+};
 
 struct VertexIn
 {
@@ -34,6 +39,7 @@ struct VertexOut
 	float4 PosH  : SV_POSITION;
     float4 Color : COLOR;
 	float2 uv:TEXCOORD;
+	float3 normal:NORMAL;
 };
 
 VertexOut VS(VertexIn vin)
@@ -47,12 +53,13 @@ VertexOut VS(VertexIn vin)
 	// Just pass vertex color into the pixel shader.
     vout.Color = vin.Color;
     vout.uv=vin.uv1;
+	vout.normal=vin.Normal;
     return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target
 {
-	float4 color=chicken.Sample(gsamAnisotropicWrap,pin.uv);
+	float4 color=chicken.Sample(gsamAnisotropicWrap,pin.uv)*color2.xyzz;
     return color;
 }
 

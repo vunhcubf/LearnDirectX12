@@ -14,7 +14,7 @@ public:
 	XMVECTOR WorldPos = XMVectorSet(3.63156, 3.24489, 3.83895, 1);
 	float FoVH = 45;
 	float Aspect = 1;
-	float NearClipPlane = 1;
+	float NearClipPlane = 0.1;
 	float FarClipPlane = 1000;
 	static constexpr float Deg2Rad = 57.2957795131f;
 	XMMATRIX CameraPMatrix;

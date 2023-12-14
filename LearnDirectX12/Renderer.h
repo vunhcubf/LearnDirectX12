@@ -2,6 +2,9 @@
 #include "Graphics.h"
 #include "Material.h"
 #include "Mesh.h"
+#include "Object.h"
+#include <unordered_map>
+#include <string>
 
 class Renderer {
 //public:
@@ -22,11 +25,13 @@ public:
 	void SetRenderTarget(UINT CameraColorTargetIndex, UINT CameraDepthStencilTargetIndex, ID3D12Resource* ColorResource, ID3D12Resource* DepthStencilResource);
 	void ClearRenderTarget();
 	void DrawMesh(Material* mat, Mesh* mesh);
+	void DrawRenderer(std::unordered_map<std::wstring, Object*> objs);
 	void ExcuteCommandList();
 	void ExcuteCommandListWithBlock();
 	void ExcuteCommandListWithBlockWithResetSwapChain();
 	void WaitGpu();
 	void ClearCommandList();
+	void ClearCommandAllocater();
 	void RefreshSwapChain();
 	void Initialize();
 	bool WillClearRenderTarget = false;

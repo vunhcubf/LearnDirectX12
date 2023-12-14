@@ -138,6 +138,7 @@
   <ItemGroup>
     <ClCompile Include="App.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Console.cpp" />
     <ClCompile Include="ConstantBuffer.cpp" />
     <ClCompile Include="DDSTextureLoader.cpp" />
     <ClCompile Include="EventManager.cpp" />
@@ -148,12 +149,14 @@
     <ClCompile Include="MyWindow.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MyException.cpp" />
+    <ClCompile Include="Object.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Console.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="DDSTextureLoader.h" />
     <ClInclude Include="EventManager.h" />
@@ -163,6 +166,7 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MyException.h" />
     <ClInclude Include="MyWindow.h" />
+    <ClInclude Include="Object.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Texture.h" />

@@ -4,6 +4,21 @@
 #include "ConstantBuffer.h"
 #include "Texture.h"
 #include <bitset>
+#include <vector>
+
+struct MaterialResources {
+public:
+	void AddTexture(Texture* texture);
+	void AddTextures(std::vector<Texture*> textures);
+	void AddFloat(float in);
+	void AddFloat2(XMFLOAT2 in);
+	void AddFloat3(XMFLOAT3 in);
+	void AddFloat4(XMFLOAT4 in);
+	void AddFloat4x4(XMFLOAT4 in);
+	std::vector<Texture*> TextureResourcesCollection;
+	UINT cbufferSize=0;
+	BYTE* cbufferData=nullptr;
+};
 
 class Material {
 private:
@@ -18,7 +33,6 @@ private:
 	DXGI_FORMAT DSVFormat;
 	DXGI_FORMAT RTVFormat;
 	UINT NumRenderTargets;
-
 	UINT slotRootParameterCount = 0;
 	std::vector<CD3DX12_ROOT_PARAMETER> slotRootParameters;
 	std::vector<UINT> ViewIndexOfTextures;
@@ -67,8 +81,14 @@ private:
 			D3D12_TEXTURE_ADDRESS_MODE_CLAMP),
 	};
 public:
+	//材质中对应的资源
+	ConstantBuffer32bits* cbuffer32bits;
+	BYTE* CbufferDataPtr = nullptr;
+	std::vector<Texture*> TextureResources;
 	Material(D3D12_SHADER_BYTECODE ByteCodeVS,
 		D3D12_SHADER_BYTECODE ByteCodePS,
+		Graphics* graphics,
+		MaterialResources resources,
 		UINT NumRenderTargets,
 		D3D12_RASTERIZER_DESC RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT),
 		D3D12_BLEND_DESC BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT),
@@ -84,6 +104,11 @@ public:
 		this->DSVFormat = DSVFormat;
 		this->RTVFormat = RTVFormat;
 		this->NumRenderTargets = NumRenderTargets;
+
+		this->TextureResources = resources.TextureResourcesCollection;
+		this->cbuffer32bits = new ConstantBuffer32bits(graphics, resources.cbufferSize);
+		cbuffer32bits->CopyData(resources.cbufferData);
+		CbufferDataPtr = resources.cbufferData;
 	}
 	void ResetByteCodeVS(D3D12_SHADER_BYTECODE ByteCodeVS) { this->ByteCodeVS = ByteCodeVS; }
 	void ResetByteCodePS(D3D12_SHADER_BYTECODE ByteCodePS) { this->ByteCodeVS = ByteCodePS; }
@@ -105,21 +130,26 @@ public:
 		slotRootParameterCount++;
 		ConstantBuffersData.push_back(std::pair(cbuffer->GetCBufferUploadBufferPtr()->GetGPUVirtualAddress(), cbuffer->GetCBufferViewIndex()));
 	}
+	void SetConstantBuffer(ConstantBuffer32bits* cbuffer) {
+		slotRootParameterCount++;
+		ConstantBuffersData.push_back(std::pair(cbuffer->GetCBufferUploadBufferPtr()->GetGPUVirtualAddress(), cbuffer->GetCBufferViewIndex()));
+	}
 
-	//void Set32BitThings();
 	void CreateRootSignature(Graphics* graphics);
 	void BindRootSignatureResource(Graphics* graphics);
 	ID3D12RootSignature* GetRootSignaturePtr()const {return RootSignature;}
 	ID3D12PipelineState* GetPipelineStatePtr()const { return PipelineState; }
 	~Material() {
-		RootSignature->Release();
-		PipelineState->Release();
+		if(RootSignature!=nullptr)RootSignature->Release();
+		if (PipelineState != nullptr)PipelineState->Release();
 		slotRootParameters.clear();
 		ViewIndexOfTextures.clear();
 		ConstantBuffersData.clear();
 		slotRootParameters.shrink_to_fit();
 		ViewIndexOfTextures.shrink_to_fit();
 		ConstantBuffersData.shrink_to_fit();
+		if(cbuffer32bits)delete cbuffer32bits;
+		if(CbufferDataPtr)free(CbufferDataPtr);
 	}
 };
 

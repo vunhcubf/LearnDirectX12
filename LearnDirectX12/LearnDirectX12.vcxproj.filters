@@ -57,6 +57,12 @@
     <ClCompile Include="DDSTextureLoader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Console.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Object.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyWindow.h">
@@ -99,6 +105,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="DDSTextureLoader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Console.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Object.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
