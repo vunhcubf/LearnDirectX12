@@ -154,7 +154,11 @@ void App::DoFrame() {
 
 
 	renderer->Blit(GBufferB);
-
-	renderer->WaitGpu();
+	renderer->ExcuteCommandList();
 	renderer->RefreshSwapChain();
+	renderer->WaitGpu();
+	renderer->ClearCommandAllocater();
+	renderer->ClearCommandList();
+	//必须先重置命令分配器，再清空命令队列
+	//不重置命令分配器会发生内存泄漏
 }

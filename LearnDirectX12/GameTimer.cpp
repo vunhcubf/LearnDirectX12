@@ -9,7 +9,7 @@ GameTimer::GameTimer()
 
 void GameTimer::Tick()
 {
-	std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	mCurTime = std::chrono::steady_clock::now();
 	mDeltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(mCurTime - mPrevTime);
 	mTotalTime += mDeltaTime;

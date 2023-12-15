@@ -27,7 +27,7 @@ public:
 
 	void SetRenderTarget(UINT CameraColorTargetIndex, UINT CameraDepthStencilTargetIndex, ID3D12Resource* ColorResource, ID3D12Resource* DepthStencilResource);
 	void SetRenderTarget(Texture* dest, UINT CameraDepthStencilTargetIndex, ID3D12Resource* DepthStencilResource);
-	void SetRenderTarget(std::vector<Texture*> dests,UINT NumRenderTarget, UINT CameraDepthStencilTargetIndex, ID3D12Resource* DepthStencilResource);
+	void SetRenderTarget(std::vector<Texture*> dest, UINT NumRenderTarget, UINT CameraDepthStencilTargetIndex, ID3D12Resource* DepthStencilResource);
 	void ClearRenderTarget();
 	void DrawMesh(Material* mat, Mesh* mesh);
 	void DrawRenderer(std::unordered_map<std::wstring, Object*> objs);

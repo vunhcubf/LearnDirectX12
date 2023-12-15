@@ -57,7 +57,6 @@ void Renderer::SetRenderTarget(Texture* dest,UINT CameraDepthStencilTargetIndex,
 	this->ColorResource = dest->TextueResource.Get();
 	this->DepthStencilResource = DepthStencilResource;
 }
-
 void Renderer::SetRenderTarget(std::vector<Texture*> dest, UINT NumRenderTarget, UINT CameraDepthStencilTargetIndex, ID3D12Resource* DepthStencilResource)
 {
 	this->Rendertargets = dest;
