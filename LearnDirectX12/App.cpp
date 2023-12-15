@@ -18,6 +18,9 @@ void App::Quit() {
 	delete windows;
 	delete eventManager;
 
+	delete GBufferB;
+	delete GBufferA;
+
 	delete graphics;
 	delete CBufferPerFrame;
 	delete renderer;
@@ -62,6 +65,7 @@ void App::Initlize() {
 	//导入材质
 	TextureCollection[L"默认"] = new Texture(L"D:\\LearnDirectX12\\LearnDirectX12\\Textures\\chicken.dds", graphics);
 	StatusConsole.PrintLine(std::wstring(L"导入了贴图资源:")+std::wstring(L"D:\\LearnDirectX12\\LearnDirectX12\\Textures\\chicken.dds"+std::wstring(L"\n")));
+	
 	//生成逐帧的Cbuffer
 	CBufferPerFrame = new ConstantBuffer<XMFLOAT4X4>(graphics);
 	//生成所有的材质
@@ -101,6 +105,37 @@ void App::Initlize() {
 	ObjectCollection[L"cornel_sphere"] = new Object(MeshCollection[L"cornel_sphere"], MaterialCollection[L"cornel_sphere"], CBufferPerFrame);
 	ObjectCollection[L"cornel_monkey"] = new Object(MeshCollection[L"cornel_monkey"], MaterialCollection[L"cornel_monkey"], CBufferPerFrame);
 	ObjectCollection[L"cornel_box"] = new Object(MeshCollection[L"cornel_box"], MaterialCollection[L"cornel_box"], CBufferPerFrame);
+	//GBufferA
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc_gbuffera;
+	srv_desc_gbuffera.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srv_desc_gbuffera.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srv_desc_gbuffera.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srv_desc_gbuffera.Texture2D.MostDetailedMip = 0;
+	srv_desc_gbuffera.Texture2D.MipLevels = 1;
+	srv_desc_gbuffera.Texture2D.ResourceMinLODClamp = 0;
+	srv_desc_gbuffera.Texture2D.PlaneSlice = 0;
+	D3D12_RENDER_TARGET_VIEW_DESC rtv_desc_gbuffera;
+	rtv_desc_gbuffera.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	rtv_desc_gbuffera.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtv_desc_gbuffera.Texture2D.MipSlice = 0;
+	rtv_desc_gbuffera.Texture2D.PlaneSlice = 0;
+	GBufferA = new Texture(&rtv_desc_gbuffera, &srv_desc_gbuffera, CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, windows->Width, windows->Height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET), graphics);
+	//GBUfferB
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc_gbufferb;
+	srv_desc_gbufferb.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srv_desc_gbufferb.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srv_desc_gbufferb.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srv_desc_gbufferb.Texture2D.MostDetailedMip = 0;
+	srv_desc_gbufferb.Texture2D.MipLevels = 1;
+	srv_desc_gbufferb.Texture2D.ResourceMinLODClamp = 0;
+	srv_desc_gbufferb.Texture2D.PlaneSlice = 0;
+	D3D12_RENDER_TARGET_VIEW_DESC rtv_desc_gbufferb;
+	rtv_desc_gbufferb.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	rtv_desc_gbufferb.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtv_desc_gbufferb.Texture2D.MipSlice = 0;
+	rtv_desc_gbufferb.Texture2D.PlaneSlice = 0;
+	GBufferB = new Texture(&rtv_desc_gbufferb,&srv_desc_gbufferb,CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, windows->Width, windows->Height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET),graphics);
+	
 	MyWindow::ShowForm(windows);
 }
 void App::DoFrame() {
@@ -110,7 +145,16 @@ void App::DoFrame() {
 	renderer->ClearRenderTarget();
 	CBufferPerFrame->CopyData(Graphics::MatrixToFloat4x4(XMMatrixTranspose(camera.CameraVPMatrix)));
 
-	renderer->DrawRenderer(ObjectCollection);
+	//渲染gbuffer
+	std::vector<Texture*> gbuffer_targets;
+	gbuffer_targets.push_back(GBufferA);
+	gbuffer_targets.push_back(GBufferB);
+	renderer->SetRenderTarget(gbuffer_targets,2,graphics->GetSwapchainDSBufferIndex(), graphics->GetSwapchainDSBuffer());
+	renderer->DrawRendererMrt(ObjectCollection);
+
+
+	renderer->Blit(GBufferB);
+
 	renderer->WaitGpu();
 	renderer->RefreshSwapChain();
 }

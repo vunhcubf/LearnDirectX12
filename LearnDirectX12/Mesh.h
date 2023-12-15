@@ -16,6 +16,11 @@ public:
 		XMFLOAT3 Normal;
 		XMFLOAT3 Tangent;
 	};
+	struct Vertex_FullScreenMesh
+	{
+		XMFLOAT3 Pos;
+		XMFLOAT2 uv;
+	};
 	struct CBufferPerObject {
 		CBufferPerObject() {};
 		CBufferPerObject(XMFLOAT4X4 ObjToWorldMatrix, XMFLOAT4 OtherPerObjectData) :ObjToWorldMatrix(ObjToWorldMatrix), OtherPerObjectData(OtherPerObjectData) {};
@@ -37,6 +42,14 @@ private:
 	std::vector<Vertex_POS_COLOR_UV1_UV2_Normal_Tangent> Vertices;
 	std::vector<UINT> Indices;
 public:
+	//fullscreenmesh
+	static constexpr Vertex_POS_COLOR_UV1_UV2_Normal_Tangent FullScreenMesh[4] = {
+		{ XMFLOAT3(-1,-1,0), XMFLOAT4(1.f, 1.f, 1.f, 1.f) ,XMFLOAT2(0,1)	,XMFLOAT2(0,0)	,XMFLOAT3(0,0,1)	,XMFLOAT3(0,0,1)},
+		{ XMFLOAT3(-1,1,0), XMFLOAT4(1.f, 1.f, 1.f, 1.f) ,XMFLOAT2(0,0)	,XMFLOAT2(0,0)	,XMFLOAT3(0,0,1)	,XMFLOAT3(0,0,1)},
+		{ XMFLOAT3(1,-1,0), XMFLOAT4(1.f, 1.f, 1.f, 1.f) ,XMFLOAT2(1,1)	,XMFLOAT2(0,0)	,XMFLOAT3(0,0,1)	,XMFLOAT3(0,0,1)},
+		{ XMFLOAT3(1,1,0), XMFLOAT4(1.f, 1.f, 1.f, 1.f) ,XMFLOAT2(1,0)	,XMFLOAT2(0,0)	,XMFLOAT3(0,0,1)	,XMFLOAT3(0,0,1)},
+	};
+	static constexpr UINT FullScreenMeshIndices[6] = {0,1,3,0,2,3};
 	static constexpr D3D12_INPUT_ELEMENT_DESC InputLayout[6] = {
 		{"POSITION",	0,	DXGI_FORMAT_R32G32B32_FLOAT,	0,	0,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,	0},
 		{"COLOR",	0,	DXGI_FORMAT_R32G32B32A32_FLOAT,	0,	12,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,	0},

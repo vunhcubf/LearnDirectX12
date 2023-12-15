@@ -1,5 +1,12 @@
 #include "Material.h"
 
+void Material::ResetRTVFormats(DXGI_FORMAT* formats)
+{
+	for (int i = 0; i < this->NumRenderTargets; i++) {
+		RtvFormats[i] = formats[i];
+	}
+}
+
 void Material::RefreshMaterial(Graphics* graphics)
 {
 	if (PipelineState) { PipelineState->Release(); }
@@ -17,7 +24,7 @@ void Material::RefreshMaterial(Graphics* graphics)
 	psoDesc.DepthStencilState = DepthStencilState;
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	psoDesc.NumRenderTargets = NumRenderTargets;
-	for (int i = 0; i < NumRenderTargets; i++) { psoDesc.RTVFormats[i] = Graphics::DefaultRTVFormat; }
+	for (int i = 0; i < NumRenderTargets; i++) { psoDesc.RTVFormats[i] = RtvFormats[i]; }
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = Graphics::DefaultDSVFormat;
@@ -35,7 +42,7 @@ void Material::SetTexture(UINT ViewIndexOfTextures)
 void Material::SetTexture(Texture* texture)
 {
 	slotRootParameterCount++;
-	this->ViewIndexOfTextures.push_back(texture->TextureViewIndex);
+	this->ViewIndexOfTextures.push_back(texture->TextureSRVIndex);
 }
 
 void Material::SetConstantBuffer(UINT CBufferViewIndex, ID3D12Resource* CBufferResource)

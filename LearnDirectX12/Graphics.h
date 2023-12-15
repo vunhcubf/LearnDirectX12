@@ -118,6 +118,18 @@ public:
 	UINT mSwapChainBufferIndex[mBackBufferCount];
 	ComPtr<ID3D12Resource> mDepthStencilBuffer;
 	UINT mDepthStencilBufferIndex;
+	UINT GetSwapchainRTVIndex() {
+		return mSwapChainBufferIndex[CurrentBackBufferIndex];
+	}
+	UINT GetSwapchainDSBufferIndex() {
+		return mDepthStencilBufferIndex;
+	}
+	ID3D12Resource* GetSwapchainColorBuffer() {
+		return mSwapChainBuffer[CurrentBackBufferIndex].Get();
+	}
+	ID3D12Resource* GetSwapchainDSBuffer() {
+		return mDepthStencilBuffer.Get();
+	}
 
 	ComPtr<IDXGISwapChain> pIDXGISwapChain;
 #if defined(DEBUG) || defined(_DEBUG)

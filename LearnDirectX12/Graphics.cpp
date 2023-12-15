@@ -290,7 +290,7 @@ ID3DBlob* Graphics::CompileShader(bool* IsAnyError, const std::wstring& filename
 	if (errors != nullptr) {
 		const char* error_text = (char*)(errors->GetBufferPointer());
 		this->StatusConsole->PrintLineA(error_text);
-		*IsAnyError = true;
+		if(IsAnyError)*IsAnyError = true;
 	}
 	return byteCode;
 }

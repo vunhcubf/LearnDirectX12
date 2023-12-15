@@ -27,6 +27,7 @@ private:
 	D3D12_SHADER_BYTECODE ByteCodeVS;
 	D3D12_SHADER_BYTECODE ByteCodePS;
 
+	DXGI_FORMAT RtvFormats[8] = { Graphics::DefaultRTVFormat ,Graphics::DefaultRTVFormat ,Graphics::DefaultRTVFormat ,Graphics::DefaultRTVFormat,Graphics::DefaultRTVFormat ,Graphics::DefaultRTVFormat ,Graphics::DefaultRTVFormat ,Graphics::DefaultRTVFormat };
 	D3D12_RASTERIZER_DESC RasterizerState;
 	D3D12_BLEND_DESC BlendState;
 	D3D12_DEPTH_STENCIL_DESC DepthStencilState;
@@ -118,6 +119,7 @@ public:
 	void ResetDepthStencilState(D3D12_DEPTH_STENCIL_DESC DepthStencilState) { this->DepthStencilState = DepthStencilState; }
 	void ResetDSVFormat(DXGI_FORMAT DSVFormat) { this->DSVFormat = DSVFormat; }
 	void ResetRTVFormat(DXGI_FORMAT RTVFormat) { this->RTVFormat = RTVFormat; }
+	void ResetRTVFormats(DXGI_FORMAT* formats);
 	void RefreshMaterial(Graphics* graphics);
 
 	void SetTexture(UINT ViewIndexOfTextures);

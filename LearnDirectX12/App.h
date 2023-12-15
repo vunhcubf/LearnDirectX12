@@ -42,6 +42,9 @@ public:
 	ConstantBuffer<XMFLOAT4X4>* CBufferPerFrame;
 	//äÖÈ¾Æ÷£¬¸ß¼¶³éÏó
 	Renderer* renderer;
+	//GBuffer
+	Texture* GBufferB;
+	Texture* GBufferA;
 
 	std::unordered_map<std::wstring, ComPtr<ID3DBlob>> ShaderVSCollection;
 	std::unordered_map<std::wstring, ComPtr<ID3DBlob>> ShaderPSCollection;

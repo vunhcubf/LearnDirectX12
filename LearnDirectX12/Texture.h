@@ -18,10 +18,13 @@ public:
         D3D12_TEXCUBE_ARRAY_SRV TextureCubeArray;
         D3D12_RAYTRACING_ACCELERATION_STRUCTURE_SRV RaytracingAccelerationStructure;
     };
-	UINT TextureViewIndex;
+    DXGI_FORMAT TextureFormat;
+	UINT TextureSRVIndex;
+    UINT TextureRTVIndex;
 	ComPtr<ID3D12Resource> TextueResource=nullptr;
     ComPtr<ID3D12Resource> UploadBuffer=nullptr;
-	Texture(D3D12_SHADER_RESOURCE_VIEW_DESC* descriptor, CD3DX12_RESOURCE_DESC textureDesc, Graphics* graphics);
+	Texture(D3D12_SHADER_RESOURCE_VIEW_DESC* descriptor, D3D12_RESOURCE_DESC textureDesc, Graphics* graphics);
+    Texture(D3D12_RENDER_TARGET_VIEW_DESC* rtv_desc, D3D12_SHADER_RESOURCE_VIEW_DESC* srv_desc, D3D12_RESOURCE_DESC textureDesc, Graphics* graphics);
 	Texture(int width, int height, int arraysize, int miplevel, DXGI_FORMAT Format, D3D12_SRV_DIMENSION dimension, D3D12_TEX2D_SRV type, Graphics* graphics);
     Texture(std::wstring filepath, Graphics* graphics);
 };

@@ -6,6 +6,7 @@
 class MyException :public std::exception {
 public:
 	MyException(int line, const char* file) noexcept;
+	MyException(int line, const char* file,std::wstring error_text) noexcept;
 	const char* what() const noexcept override;
 	virtual const char* GetType() const noexcept;
 	int GetLine() const noexcept;
