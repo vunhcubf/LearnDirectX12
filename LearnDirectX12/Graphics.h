@@ -95,13 +95,15 @@ public:
 	int Width;
 	int Height;
 
-	ComPtr<IDXGIFactory5> pIDXGIFactory5;
+	ComPtr<IDXGIFactory6> pIDXGIFactory6;
 	ComPtr<IDXGIAdapter1> pIAdapter;
 	ComPtr<ID3D12Device5> pID3DDevice;
+	std::wstring AdaptorDescription;
+	UINT adaptorID;
 
 	ComPtr<ID3D12CommandQueue> pCommandQueue;
 	ComPtr<ID3D12CommandAllocator> pDirectCmdListAlloc;
-	ComPtr<ID3D12GraphicsCommandList> pCommandList;
+	ComPtr<ID3D12GraphicsCommandList5> pCommandList;
 
 	ComPtr<ID3D12DescriptorHeap> mRTVHeap;
 	ComPtr<ID3D12DescriptorHeap> mDSVHeap;

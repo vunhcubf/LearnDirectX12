@@ -33,6 +33,18 @@ void Renderer::Blit(Texture* src, Texture* dest)
 	ClearCommandList();
 }
 
+void Renderer::Blit(Texture* src, Texture* dest, D3D12_SHADER_BYTECODE pixel_shader)
+{
+	BlitMaterial->SetTexture(src);
+	BlitMaterial->ResetRTVFormat(src->TextureFormat);
+	BlitMaterial->ResetByteCodePS(pixel_shader);
+	SetRenderTarget(dest->TextureRTVIndex, graphics->GetSwapchainDSBufferIndex(), dest->TextueResource.Get(), graphics->GetSwapchainDSBuffer());
+	DrawMesh(BlitMaterial, FullScreenMesh);
+	ExcuteCommandList();
+	ClearCommandList();
+	BlitMaterial->ResetByteCodePS(Graphics::GetShaderByteCodeFromBlob(BlitPS.Get()));
+}
+
 void Renderer::Blit(Texture* src)
 {
 	BlitMaterial->SetTexture(src);
@@ -310,4 +322,154 @@ void Renderer::Initialize()
 	optClear.DepthStencil.Stencil = 0;
 	THROW_IF_ERROR(graphics->pID3DDevice->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, &depthstnecilDesc, D3D12_RESOURCE_STATE_COMMON, &optClear, IID_PPV_ARGS(graphics->mDepthStencilBuffer.GetAddressOf())));
 	graphics->mDepthStencilBufferIndex = graphics->AddViewOnDSVHeap(nullptr, graphics->mDepthStencilBuffer.Get());
+}
+Renderer::RayTracingAccelerateStructureData Renderer::BuildRayTracingAccelerateStructure(std::unordered_map<std::wstring, Object*> objs) {
+	//一切从简，一个物体对应一个blas，tlas包含所有的blas一遍
+	UINT NumOfObjs = objs.size();
+	//所有几何体的描述信息
+	std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometry_descs(NumOfObjs);
+	//每个底层结构需要对应一个buffer
+	std::vector<ComPtr<ID3D12Resource>> BottomAccelerateStructureBuffer(NumOfObjs);
+	//每个底层结构的描述结构体
+	std::vector<D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC> BLASDescriptors(NumOfObjs);
+	//临时存放数据
+	std::vector<ComPtr<ID3D12Resource>> BLASScratchBuffers(NumOfObjs);
+	int i = 0;
+	for (auto& obj : objs) {
+		//几何描述符
+		//设置每个obj对应一个底层加速结构，每个底层加速结构对映射，顶层加速结构中的一个shadertableid
+		D3D12_RAYTRACING_GEOMETRY_DESC stModuleGeometryDesc = {};
+		stModuleGeometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+		stModuleGeometryDesc.Triangles.IndexBuffer = obj.second->mesh->GetIndexBufferGpu()->GetGPUVirtualAddress();
+		stModuleGeometryDesc.Triangles.IndexCount = obj.second->mesh->GetIndicesCount();
+		stModuleGeometryDesc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
+		stModuleGeometryDesc.Triangles.Transform3x4 = 0;
+		stModuleGeometryDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
+		stModuleGeometryDesc.Triangles.VertexCount = obj.second->mesh->GetVerticesCount();
+		stModuleGeometryDesc.Triangles.VertexBuffer.StartAddress = obj.second->mesh->GetVertexBufferGpu()->GetGPUVirtualAddress();
+		stModuleGeometryDesc.Triangles.VertexBuffer.StrideInBytes = sizeof(Mesh::Vertex_POS_COLOR_UV1_UV2_Normal_Tangent);
+		stModuleGeometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+		geometry_descs.at(i)=stModuleGeometryDesc;
+		//底层加速结构描述结构体
+		BLASDescriptors.at(i).Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+		BLASDescriptors.at(i).Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+		BLASDescriptors.at(i).Inputs.NumDescs = 1;
+		BLASDescriptors.at(i).Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+		BLASDescriptors.at(i).Inputs.pGeometryDescs = &geometry_descs.at(i);
+		//获取底层结构prebuild
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
+		graphics->pID3DDevice->GetRaytracingAccelerationStructurePrebuildInfo(&BLASDescriptors.at(i).Inputs, &bottomLevelPrebuildInfo);
+		if (bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes <= 0) throw std::runtime_error("bottom accelerate structure prebuild info error:ResultDataMaxSizeInBytes less than 0");
+		//为每个底层加速结构创建buffer
+		graphics->pID3DDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+			D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,
+			nullptr,
+			IID_PPV_ARGS(BottomAccelerateStructureBuffer.at(i).GetAddressOf())
+		);
+		BLASDescriptors.at(i).DestAccelerationStructureData = BottomAccelerateStructureBuffer.at(i).Get()->GetGPUVirtualAddress();
+		//创建临时存放数据的buffer
+		graphics->pID3DDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(bottomLevelPrebuildInfo.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			nullptr,
+			IID_PPV_ARGS(BLASScratchBuffers.at(i).GetAddressOf()));
+		BLASDescriptors.at(i).ScratchAccelerationStructureData = BLASScratchBuffers.at(i).Get()->GetGPUVirtualAddress();
+		graphics->pCommandList->BuildRaytracingAccelerationStructure(&BLASDescriptors.at(i), 0, nullptr);
+		i++;
+	}
+	////////////////////////////////////////////////////////////////////////////
+	//顶层加速结构
+	ComPtr<ID3D12Resource> TopAccelerateStructureBuffer;
+	ComPtr<ID3D12Resource> TLASScratchBuffers;
+
+ 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC TLASDescriptors = {};
+	TLASDescriptors.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+	TLASDescriptors.Inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+	TLASDescriptors.Inputs.NumDescs = NumOfObjs;
+	TLASDescriptors.Inputs.pGeometryDescs = nullptr;
+	TLASDescriptors.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+	//生成预构建信息
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPrebuildInfo = {};
+	graphics->pID3DDevice->GetRaytracingAccelerationStructurePrebuildInfo(&TLASDescriptors.Inputs, &topLevelPrebuildInfo);
+	if (topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0) throw std::runtime_error("top accelerate structure prebuild info error:ResultDataMaxSizeInBytes less than 0");
+	//创建TLAS临时数据的buffer
+	graphics->pID3DDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(topLevelPrebuildInfo.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+		nullptr,
+		IID_PPV_ARGS(TLASScratchBuffers.GetAddressOf())
+	);
+	//创建TLAS数据的buffer
+	graphics->pID3DDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(topLevelPrebuildInfo.ResultDataMaxSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+		D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,
+		nullptr,
+		IID_PPV_ARGS(TopAccelerateStructureBuffer.GetAddressOf())
+	);
+	//把两个buffer绑定到描述结构体上
+	TLASDescriptors.DestAccelerationStructureData = TopAccelerateStructureBuffer.Get()->GetGPUVirtualAddress();
+	TLASDescriptors.ScratchAccelerationStructureData = TLASScratchBuffers.Get()->GetGPUVirtualAddress();
+	//顶层结构需要包含底层结构的实例
+	ComPtr<ID3D12Resource> InstanceDescsResource;
+	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> InstanceDescriptor(NumOfObjs);
+	for (int i = 0; i < NumOfObjs; i++) {
+		InstanceDescriptor.at(i).Transform[0][0] = 1;
+		InstanceDescriptor.at(i).Transform[0][1] = 0;
+		InstanceDescriptor.at(i).Transform[0][2] = 0;
+		InstanceDescriptor.at(i).Transform[0][3] = 0;
+
+		InstanceDescriptor.at(i).Transform[1][0] = 0;
+		InstanceDescriptor.at(i).Transform[1][1] = 1;
+		InstanceDescriptor.at(i).Transform[1][2] = 0;
+		InstanceDescriptor.at(i).Transform[1][3] = 0;
+
+		InstanceDescriptor.at(i).Transform[2][0] = 0;
+		InstanceDescriptor.at(i).Transform[2][1] = 0;
+		InstanceDescriptor.at(i).Transform[2][2] = 1;
+		InstanceDescriptor.at(i).Transform[2][3] = 0;
+
+		InstanceDescriptor.at(i).InstanceContributionToHitGroupIndex = i;
+		InstanceDescriptor.at(i).Flags = 0;
+		InstanceDescriptor.at(i).InstanceID = 0;
+		InstanceDescriptor.at(i).InstanceMask = 1;
+		InstanceDescriptor.at(i).AccelerationStructure = BottomAccelerateStructureBuffer.at(i).Get()->GetGPUVirtualAddress();
+	}
+	auto datasize = InstanceDescriptor.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+	//使用上传堆上传
+	THROW_IF_ERROR(graphics->pID3DDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(datasize),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(InstanceDescsResource.GetAddressOf())
+	));
+	void* MappedData;
+	InstanceDescsResource.Get()->Map(0,nullptr,&MappedData);
+	memcpy(MappedData, InstanceDescriptor.data(), datasize);
+	InstanceDescsResource.Get()->Unmap(0, nullptr);
+	TLASDescriptors.Inputs.InstanceDescs = InstanceDescsResource.Get()->GetGPUVirtualAddress();
+	//构建顶层加速结构
+	graphics->pCommandList->BuildRaytracingAccelerationStructure(&TLASDescriptors, 0, nullptr);
+
+	RayTracingAccelerateStructureData data;
+	data.BottomAccelerateStructureBuffer = BottomAccelerateStructureBuffer;
+	data.BLASDescriptors = BLASDescriptors;
+	data.BLASScratchBuffers = BLASScratchBuffers;
+	data.geometry_descs = geometry_descs;
+	data.TopAccelerateStructureBuffer = TopAccelerateStructureBuffer;
+	data.TLASScratchBuffers = TLASScratchBuffers;
+	data.TLASDescriptors = TLASDescriptors;
+	data.InstanceDescsResource = InstanceDescsResource;
+	data.InstanceDescriptor = InstanceDescriptor;
+	return data;
 }

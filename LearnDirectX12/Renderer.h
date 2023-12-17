@@ -14,10 +14,12 @@ public:
 	ID3D12Resource* ColorResource = nullptr;
 	ID3D12Resource* DepthStencilResource = nullptr;
 	Renderer(Graphics* graphics);
+
 	//后处理用的
 	Mesh* FullScreenMesh;
 	Material* BlitMaterial;
 	void Blit(Texture* src,Texture* dest);
+	void Blit(Texture* src, Texture* dest, D3D12_SHADER_BYTECODE pixel_shader);
 	void Blit(Texture* src);
 	ComPtr<ID3DBlob> BlitVS;
 	ComPtr<ID3DBlob> BlitPS;
@@ -44,4 +46,17 @@ public:
 	~Renderer() {
 		delete FullScreenMesh;
 	}
+	//以下是光线追踪的部分
+	struct RayTracingAccelerateStructureData {
+		std::vector<ComPtr<ID3D12Resource>> BottomAccelerateStructureBuffer;
+		std::vector<D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC> BLASDescriptors;
+		std::vector<ComPtr<ID3D12Resource>> BLASScratchBuffers;
+		std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometry_descs;
+		ComPtr<ID3D12Resource> TopAccelerateStructureBuffer;
+		ComPtr<ID3D12Resource> TLASScratchBuffers;
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC TLASDescriptors;
+		ComPtr<ID3D12Resource> InstanceDescsResource;
+		std::vector<D3D12_RAYTRACING_INSTANCE_DESC> InstanceDescriptor;
+	};
+	RayTracingAccelerateStructureData BuildRayTracingAccelerateStructure(std::unordered_map<std::wstring,Object*> obj);
 };

@@ -7,7 +7,7 @@ class GameTimer
 public:
     GameTimer();
     void Tick();  // 每帧都要调用
-    void DisplayFps(MyWindow* Wnd);
+    void DisplayFps(MyWindow* Wnd,std::wstring GpuInfo,UINT GpuId);
     void SetPrevTime();
 
     std::chrono::milliseconds mTotalTime = std::chrono::duration<long long, std::milli>(0);

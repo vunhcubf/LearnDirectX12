@@ -74,25 +74,25 @@ void App::Initlize() {
 	resources1.AddFloat4(XMFLOAT4(1, 0, 1, 1));
 	resources1.AddFloat4(XMFLOAT4(1, 1, 0, 1));
 	resources1.AddFloat4(XMFLOAT4(0.5, 0.5, 0.5, 0.5));
-	MaterialCollection[L"cornel_outer"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources1, 1);
+	MaterialCollection[L"cornel_outer"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"GBuffer.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"GBuffer.hlsl"].Get()), graphics, resources1, 1);
 	MaterialResources resources2;
 	resources2.AddTexture(TextureCollection[L"默认"]);
 	resources2.AddFloat4(XMFLOAT4(1, 0, 1, 1));
 	resources2.AddFloat4(XMFLOAT4(0, 0, 1, 1));
 	resources2.AddFloat4(XMFLOAT4(0.5, 0.5, 0.5, 0.5));
-	MaterialCollection[L"cornel_sphere"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources2, 1);
+	MaterialCollection[L"cornel_sphere"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"GBuffer.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"GBuffer.hlsl"].Get()), graphics, resources2, 1);
 	MaterialResources resources3;
 	resources3.AddTexture(TextureCollection[L"默认"]);
 	resources3.AddFloat4(XMFLOAT4(1, 0, 1, 1));
 	resources3.AddFloat4(XMFLOAT4(0, 1, 0, 1));
 	resources3.AddFloat4(XMFLOAT4(0.5, 0.5, 0.5, 0.5));
-	MaterialCollection[L"cornel_monkey"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources3, 1);
+	MaterialCollection[L"cornel_monkey"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"GBuffer.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"GBuffer.hlsl"].Get()), graphics, resources3, 1);
 	MaterialResources resources4;
 	resources4.AddTexture(TextureCollection[L"默认"]);
 	resources4.AddFloat4(XMFLOAT4(1, 0, 1, 1));
 	resources4.AddFloat4(XMFLOAT4(1, 0, 0, 1));
 	resources4.AddFloat4(XMFLOAT4(0.5, 0.5, 0.5, 0.5));
-	MaterialCollection[L"cornel_box"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"DrawCube.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"DrawCube.hlsl"].Get()), graphics, resources4, 1);
+	MaterialCollection[L"cornel_box"] = new Material(Graphics::GetShaderByteCodeFromBlob(ShaderVSCollection[L"GBuffer.hlsl"].Get()), Graphics::GetShaderByteCodeFromBlob(ShaderPSCollection[L"GBuffer.hlsl"].Get()), graphics, resources4, 1);
 
 	//生成所有的网格
 	MeshCollection[L"cornel_sphere"] = new Mesh(graphics, &Mesh::CBufferPerObject(graphics->Float4x4Identity, XMFLOAT4(0, 0, 0, 0)), L"D:\\LearnDirectX12\\LearnDirectX12\\Models\\cornel_sphere.obj");
@@ -152,13 +152,12 @@ void App::DoFrame() {
 	renderer->SetRenderTarget(gbuffer_targets,2,graphics->GetSwapchainDSBufferIndex(), graphics->GetSwapchainDSBuffer());
 	renderer->DrawRendererMrt(ObjectCollection);
 
-
+	//必须先重置命令分配器，再清空命令队列
+	//不重置命令分配器会发生内存泄漏
 	renderer->Blit(GBufferB);
 	renderer->ExcuteCommandList();
 	renderer->RefreshSwapChain();
 	renderer->WaitGpu();
 	renderer->ClearCommandAllocater();
 	renderer->ClearCommandList();
-	//必须先重置命令分配器，再清空命令队列
-	//不重置命令分配器会发生内存泄漏
 }

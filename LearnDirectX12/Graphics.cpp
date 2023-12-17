@@ -9,14 +9,27 @@ void Graphics::CreateDebugLayer() {
 
 void Graphics::CreateDXGIFactory() {
 #if defined _DEBUG
-	THROW_IF_ERROR(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&pIDXGIFactory5)));
+	THROW_IF_ERROR(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&pIDXGIFactory6)));
 #else
-	THROW_IF_ERROR(CreateDXGIFactory1(IID_PPV_ARGS(&pIDXGIFactory5)));
+	THROW_IF_ERROR(CreateDXGIFactory1(IID_PPV_ARGS(&pIDXGIFactory6)));
 #endif
 }
 
 void Graphics::CreateDevice() {
-	THROW_IF_ERROR(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&pID3DDevice)));
+	//选择高性能适配器
+	//遍历所有的显卡
+	ComPtr<IDXGIAdapter1> adaptor;
+	for (UINT adaptorID = 0; pIDXGIFactory6->EnumAdapterByGpuPreference(adaptorID, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adaptor.GetAddressOf()))!= DXGI_ERROR_NOT_FOUND; adaptorID++) {
+		DXGI_ADAPTER_DESC1 desc;
+		THROW_IF_ERROR(adaptor->GetDesc1(&desc));
+		if (desc.Flags == DXGI_ADAPTER_FLAG_SOFTWARE) { continue; }
+		if (D3D12CreateDevice(adaptor.Get(), D3D_FEATURE_LEVEL_12_2, _uuidof(ID3D12Device),nullptr) >= 0) {
+			this->pIAdapter = adaptor;
+			this->adaptorID = adaptorID;
+			this->AdaptorDescription = desc.Description;
+		}
+	}
+	THROW_IF_ERROR(D3D12CreateDevice(pIAdapter.Get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&pID3DDevice)));
 }
 
 void Graphics::CreateFence() {
@@ -66,8 +79,8 @@ void Graphics::CreateSwapChain() {
 	sd.Windowed = true;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	THROW_IF_ERROR(this->pIDXGIFactory5->CreateSwapChain(this->pCommandQueue.Get(), &sd, pIDXGISwapChain.GetAddressOf()));
-	THROW_IF_ERROR(pIDXGIFactory5->MakeWindowAssociation(this->hWnd, DXGI_MWA_NO_ALT_ENTER));
+	THROW_IF_ERROR(this->pIDXGIFactory6->CreateSwapChain(this->pCommandQueue.Get(), &sd, pIDXGISwapChain.GetAddressOf()));
+	THROW_IF_ERROR(pIDXGIFactory6->MakeWindowAssociation(this->hWnd, DXGI_MWA_NO_ALT_ENTER));
 }
 
 void Graphics::CreateRTVAndDescriptorHeaps() {
@@ -291,6 +304,11 @@ ID3DBlob* Graphics::CompileShader(bool* IsAnyError, const std::wstring& filename
 		const char* error_text = (char*)(errors->GetBufferPointer());
 		this->StatusConsole->PrintLineA(error_text);
 		if(IsAnyError)*IsAnyError = true;
+	}
+	else {
+		std::wstringstream wss;
+		wss << L"成功编译shader:" << filename<<L"\n";
+		this->StatusConsole->PrintLine(wss.str());
 	}
 	return byteCode;
 }

@@ -14,7 +14,7 @@ int CALLBACK WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR lpCmdLine
 
 			app->timer.Tick();
 			app->timer.SetPrevTime();
-			app->timer.DisplayFps(app->GetWindows());
+			app->timer.DisplayFps(app->GetWindows(),app->graphics->AdaptorDescription,app->graphics->adaptorID);
 		}
 		app->Quit();
 	}

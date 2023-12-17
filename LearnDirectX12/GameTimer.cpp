@@ -15,13 +15,17 @@ void GameTimer::Tick()
 	mTotalTime += mDeltaTime;
 }
 
-void GameTimer::DisplayFps(MyWindow* Wnd)
+void GameTimer::DisplayFps(MyWindow* Wnd,std::wstring GpuInfo,UINT GpuId)
 {
-	std::wstring ws;
-	ws = Wnd->WindowTitle;
-	ws += L"  Fps:";
-	ws += std::to_wstring(1000/mDeltaTime.count());
-	SetWindowTextW(Wnd->hWnd, ws.c_str());
+	std::wstringstream ws;
+	ws << Wnd->WindowTitle;
+	ws << L"  Fps:";
+	ws << std::to_wstring(1000/mDeltaTime.count());
+	ws << L"    GpuId:";
+	ws << GpuId;
+	ws<< L"  ";
+	ws << GpuInfo;
+	SetWindowTextW(Wnd->hWnd, ws.str().c_str());
 }
 
 void GameTimer::SetPrevTime()

@@ -140,11 +140,14 @@ public:
 		delete cbufferPerobj;
 	}
 	D3D12_VERTEX_BUFFER_VIEW* GetVertexBufferViewPtr() { return &VertexBufferView; }
+	ID3D12Resource* GetIndexBufferGpu() { return this->IndexBufferGpu.Get(); }
+	ID3D12Resource* GetVertexBufferGpu() { return this->VertexBufferGpu.Get(); }
 	D3D12_INDEX_BUFFER_VIEW* GetIndexBufferViewPtr() { return &IndexBufferView; }
 	D3D_PRIMITIVE_TOPOLOGY GetPrimitiveTopology() { return PrimitiveTopology; }
 	UINT GetCBufferPerObjViewIndex() { return CBufferPerObjectViewIndex; }
 	ID3D12Resource* GetCBufferPerObjectForUploadPtr() { return cbufferPerobj->GetCBufferUploadBufferPtr(); }
 	UINT GetIndicesCount() { return CountOfIndices; }
+	UINT GetVerticesCount() { return CountOfVertices; }
 	static std::pair<std::vector<Mesh::Vertex_POS_COLOR_UV1_UV2_Normal_Tangent>, std::vector<UINT>> LoadObjModel(const wchar_t* filepath);
 	ConstantBuffer<CBufferPerObject>* GetCBufferPerObjPtr() { return cbufferPerobj; }
 };
